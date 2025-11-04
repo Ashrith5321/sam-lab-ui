@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>9-Motor Controller</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 20px; }
+    h1 { margin-bottom: 6px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);}
+    .row { display:flex; align-items:center; gap:8px; margin:6px 0;}
+    .label { width: 70px; color:#555; }
+    button { padding: 6px 10px; border-radius: 8px; border:1px solid #ccc; cursor: pointer; }
+    .dir { display:flex; gap:4px; }
+    .status { font-size: 12px; color:#666; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <h1>9-Motor Controller</h1>
+  <div class="status">Status: <span id="status">(checking...)</span></div>
+  <div class="grid" id="grid"></div>
+
+<script>
+async function api(path){
+  const r = await fetch(path);
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+async function refreshStatus(){
+  try{ const j = await api('/api/status');
+    document.getElementById('status').textContent = j.status || 'OK';
+  } catch(e){ document.getElementById('status').textContent = 'No reply'; }
+}
+
+function motorCard(id){
+  const el = document.createElement('div'); el.className='card';
+  el.innerHTML = `
+    <h3>Motor ${id}</h3>
+    <div class="row"><div class="label">Speed</div>
+      <input type="range" min="0" max="100" value="0" id="speed-${id}" />
+      <span id="spv-${id}">0%</span>
+    </div>
+    <div class="row"><div class="label">Dir</div>
+      <div class="dir">
+        <label><input name="dir-${id}" type="radio" value="CW" checked> CW</label>
+        <label><input name="dir-${id}" type="radio" value="CCW"> CCW</label>
+      </div>
+    </div>
+    <div class="row">
+      <button id="start-${id}">Start</button>
+      <button id="set-${id}">Set</button>
+      <button id="stop-${id}">Stop</button>
+    </div>
+  `;
+
+  const speed = el.querySelector(`#speed-${id}`);
+  const spv = el.querySelector(`#spv-${id}`);
+  speed.addEventListener('input', ()=>{ spv.textContent = speed.value + '%'; });
+
+  function getDir(){
+    return (el.querySelector(`input[name="dir-${id}"]:checked`) || {}).value || 'CW';
+  }
+
+  el.querySelector(`#start-${id}`).onclick = async ()=>{
+    const q = `speed=${+speed.value}&dir=${getDir()}`;
+    await api(`/api/motor/${id}/start?${q}`);
+  };
+  el.querySelector(`#set-${id}`).onclick = async ()=>{
+    const q = `speed=${+speed.value}&dir=${getDir()}`;
+    await api(`/api/motor/${id}/set?${q}`);
+  };
+  el.querySelector(`#stop-${id}`).onclick = async ()=>{
+    await api(`/api/motor/${id}/stop`);
+  };
+
+  return el;
+}
+
+function init(){
+  const grid = document.getElementById('grid');
+  for(let i=1;i<=9;i++) grid.appendChild(motorCard(i));
+  refreshStatus();
+}
+
+init();
+</script>
+</body>
+</html>

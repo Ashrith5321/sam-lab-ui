@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/one_motor.dir/backend/main.cpp.o CMakeFiles/one_motor.dir/backend/HttpServer.cpp.o CMakeFiles/one_motor.dir/backend/MotorController.cpp.o CMakeFiles/one_motor.dir/backend/SerialPort.cpp.o -o one_motor

@@ -1,0 +1,3 @@
+/home/ashed/Documents/one-motor-cpp/build/CMakeFiles/one_motor.dir
+/home/ashed/Documents/one-motor-cpp/build/CMakeFiles/edit_cache.dir
+/home/ashed/Documents/one-motor-cpp/build/CMakeFiles/rebuild_cache.dir

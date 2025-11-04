@@ -1,0 +1,16 @@
+cmake_minimum_required(VERSION 3.16)
+project(one_motor_cpp LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+add_executable(one_motor
+  backend/main.cpp
+  backend/SerialPort.cpp
+  backend/MotorController.cpp
+  backend/HttpServer.cpp
+)
+
+target_include_directories(one_motor PRIVATE backend)
+target_link_libraries(one_motor PRIVATE pthread)

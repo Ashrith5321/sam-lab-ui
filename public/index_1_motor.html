@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>One Motor Control (C++)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+      body { display:flex; min-height:100dvh; align-items:center; justify-content:center; margin:0; }
+      .card { padding: 24px 28px; border-radius: 16px; box-shadow: 0 6px 30px rgba(0,0,0,.12); min-width: 320px; }
+      .row { display:flex; align-items:center; justify-content:space-between; gap: 12px; }
+      .title { font-size: 1.25rem; font-weight: 700; margin-bottom: 12px; }
+      .status { margin-top: 10px; font-size: 0.95rem; opacity: 0.85; }
+      .switch { position: relative; display: inline-block; width: 64px; height: 36px; }
+      .switch input { display:none; }
+      .slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0;
+        background:#777; transition:.2s; border-radius: 999px; }
+      .slider:before { position:absolute; content:""; height:28px; width:28px; left:4px; top:4px;
+        background:white; transition:.2s; border-radius:50%; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+      input:checked + .slider { background:#2ecc71; } input:checked + .slider:before { transform: translateX(28px); }
+      button { padding:8px 12px; border-radius:10px; border:1px solid #888; cursor:pointer; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="title">One Motor Control (C++)</div>
+      <div class="row">
+        <div>Motor</div>
+        <label class="switch">
+          <input id="toggle" type="checkbox" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button id="refresh">Refresh Status</button>
+        <div id="state" class="status">Status: …</div>
+      </div>
+    </div>
+
+    <script>
+      const toggle = document.getElementById('toggle');
+      const stateEl = document.getElementById('state');
+      const refreshBtn = document.getElementById('refresh');
+
+      async function setState(on) {
+        try {
+          const r = await fetch('/motor', { method: 'POST', body: JSON.stringify({ state: on ? 'on' : 'off' }) });
+          const j = await r.json();
+          if (!j.ok) throw new Error(j.error || 'unknown error');
+          stateEl.textContent = `Status: ${j.state?.toUpperCase?.() || 'UNKNOWN'}`;
+        } catch (e) {
+          console.error(e); stateEl.textContent = `Status: ERROR`;
+        }
+      }
+
+      async function getStatus() {
+        try {
+          const r = await fetch('/status');
+          const j = await r.json();
+          if (j.ok) {
+            toggle.checked = j.state === 'on';
+            stateEl.textContent = `Status: ${j.state.toUpperCase()}`;
+          } else stateEl.textContent = 'Status: ERROR';
+        } catch { stateEl.textContent = 'Status: ERROR'; }
+      }
+
+      toggle.addEventListener('change', (e) => setState(e.target.checked));
+      refreshBtn.addEventListener('click', getStatus);
+      getStatus(); setInterval(getStatus, 2000);
+    </script>
+  </body>
+</html>
