@@ -23,9 +23,15 @@ std::optional<std::string> MotorController::status(){
 }
 
 bool MotorController::start(int id, int speedPercent, Direction dir){
-    std::ostringstream ss; ss << "M"<<id<<":START:"<<speedPercent<<":"<<(dir==Direction::CW?"CW":"CCW");
+    std::cerr << "DEBUG start: id=" << id
+              << " speed=" << speedPercent
+              << " dir=" << (dir==Direction::CW ? "CW" : "CCW") << "\n";
+
+    std::ostringstream ss;
+    ss << "M"<<id<<":START:"<<speedPercent<<":"<<(dir==Direction::CW?"CW":"CCW");
     return sendLine(ss.str());
 }
+
 
 bool MotorController::stop(int id){
     std::ostringstream ss; ss << "M"<<id<<":STOP";
@@ -33,7 +39,8 @@ bool MotorController::stop(int id){
 }
 
 bool MotorController::set(int id, int speedPercent, Direction dir){
-    std::ostringstream ss; ss << "M"<<id<<":SET:"<<speedPercent<<":"<<(dir==Direction::CW?"CW":"CCW");
+    std::ostringstream ss;
+    ss << "M"<<id<<":SET:"<<speedPercent<<":"<<(dir==Direction::CW?"CW":"CCW");
     return sendLine(ss.str());
 }
 
