@@ -1,12 +1,7 @@
 # one-motor-cpp
 
 A minimal C++ HTTP + serial bridge to control up to 9 DC motors on an **Arduino Leonardo** via browser or API.  
-The project serves a web UI (`./public`) and communicates with the Arduino using serial commands like:
-
-M1:START:37:CCW
-
-yaml
-Copy code
+The project serves a web UI (`./public`) and communicates with the Arduino using serial commands like `M1:START:37:CCW`.
 
 ---
 
@@ -22,250 +17,95 @@ Copy code
 
 ## Requirements
 
-### System Dependencies
-
 | Tool | Purpose | Install command (Ubuntu/Debian) |
 |------|----------|--------------------------------|
-| **C++17 Compiler** | Build backend | `sudo apt install g++` |
-| **CMake** | Build system | `sudo apt install cmake` |
-| **Make** | Build automation | `sudo apt install make` |
-| **Git** | Version control | `sudo apt install git` |
-| **Arduino IDE / CLI** | Flash firmware to Arduino | `sudo apt install arduino` or `arduino-cli` |
+| C++17 Compiler | Build backend | sudo apt install g++ |
+| CMake | Build system | sudo apt install cmake |
+| Make | Build automation | sudo apt install make |
+| Git | Version control | sudo apt install git |
+| Arduino IDE / CLI | Flash firmware to Arduino | sudo apt install arduino or arduino-cli |
 
 ---
 
-## Arduino Setup
+## Full Setup and Run (All Commands in One Block)
 
-1. Connect your **Arduino Leonardo** (or compatible board).
-2. Identify its serial path:
-   ```bash
-   ls /dev/serial/by-id/
-Example output:
+```bash
+# 1. Install dependencies
+sudo apt update && sudo apt install -y g++ cmake make git socat arduino
 
-Copy code
-usb-Arduino_LLC_Arduino_Leonardo-if00
-Flash the Arduino with your firmware (e.g. one_motor.ino) that handles commands like:
-
-bash
-Copy code
-M{id}:START:{speed}:{dir}
-M{id}:STOP
-M{id}:SET:{speed}:{dir}
-and replies with:
-
-nginx
-Copy code
-OK
-After flashing, ensure the board is detected:
-
-bash
-Copy code
-dmesg | grep tty
-Build Instructions
-Clone the repository:
-
-bash
-Copy code
+# 2. Clone repository
 git clone https://github.com/Ashrith5321/sam-lab-ui.git
 cd one-motor-cpp
-Then build:
 
-bash
-Copy code
-cmake -S . -B build
-cmake --build build -j8
-If you ever need to clean:
-
-bash
-Copy code
+# 3. Build
 rm -rf build
 cmake -S . -B build
 cmake --build build -j8
-This produces the executable:
 
-bash
-Copy code
-build/one_motor
-Running the Server
-Run with your serial device path and desired port:
+# 4. Check Arduino connection
+ls /dev/serial/by-id/
 
-bash
-Copy code
+# Example output:
+# usb-Arduino_LLC_Arduino_Leonardo-if00
+
+# 5. Flash your Arduino manually using Arduino IDE or arduino-cli
+#    Make sure it supports the following commands:
+#    M{id}:START:{speed}:{dir}
+#    M{id}:STOP
+#    M{id}:SET:{speed}:{dir}
+#    And replies with "OK"
+
+# 6. Verify Arduino detection
+dmesg | grep tty
+
+# 7. Run server
 SERIAL_PORT=/dev/serial/by-id/usb-Arduino_LLC_Arduino_Leonardo-if00 \
 PORT=5173 \
 STATIC_DIR=./public \
 ./build/one_motor
-Example output:
 
-pgsql
-Copy code
-Serial open at /dev/serial/by-id/usb-Arduino_LLC_Arduino_Leonardo-if00 @115200
-[SERIAL←] (no READY in 3000 ms)
-HTTP serving ./public on http://127.0.0.1:5173
-HTTP listening on http://127.0.0.1:5173
-Then open your browser at:
+# Expected output:
+# Serial open at /dev/serial/by-id/usb-Arduino_LLC_Arduino_Leonardo-if00 @115200
+# [SERIAL←] (no READY in 3000 ms)
+# HTTP serving ./public on http://127.0.0.1:5173
+# HTTP listening on http://127.0.0.1:5173
 
-cpp
-Copy code
-http://127.0.0.1:5173
-API Reference
-1. Status
-GET /api/status
-Check connection status to Arduino:
+# 8. Open the UI
+# Visit http://127.0.0.1:5173
 
-bash
-Copy code
+# 9. API Tests (examples)
+# Check Arduino connection
 curl "http://127.0.0.1:5173/api/status"
-Response:
 
-json
-Copy code
-{"status":"OK"}
-2. Motor Commands
-Pattern:
-
-bash
-Copy code
-/api/motor/{id}/{command}?speed={0-100}&dir={CW|CCW}
-Field	Description
-id	Motor number (1–9)
-command	start, stop, or set
-speed	0–100 (integer)
-dir	CW or CCW
-
-Start motor:
-
-bash
-Copy code
+# Start motor
 curl "http://127.0.0.1:5173/api/motor/1/start?speed=40&dir=CW"
-Stop motor:
 
-bash
-Copy code
+# Stop motor
 curl "http://127.0.0.1:5173/api/motor/1/stop"
-Change speed/direction:
 
-bash
-Copy code
+# Change direction/speed
 curl "http://127.0.0.1:5173/api/motor/1/set?speed=30&dir=CCW"
-Example output:
 
-pgsql
-Copy code
-DEBUG handler: method=GET path='/api/motor/1/start?speed=37&dir=CCW'
-DEBUG match: id=1 cmd=start qs='speed=37&dir=CCW'
-DEBUG kv: 'speed'='37'
-DEBUG kv: 'dir'='CCW'
-DEBUG parsed: speed=37 dirStr='CCW' -> CCW
-[SERIAL→] M1:START:37:CCW
-[SERIAL←] OK
-Serial Command Format
-Every message sent to Arduino follows:
+# Example debug output:
+# DEBUG handler: method=GET path='/api/motor/1/start?speed=37&dir=CCW'
+# DEBUG match: id=1 cmd=start qs='speed=37&dir=CCW'
+# DEBUG kv: 'speed'='37'
+# DEBUG kv: 'dir'='CCW'
+# DEBUG parsed: speed=37 dirStr='CCW' -> CCW
+# [SERIAL→] M1:START:37:CCW
+# [SERIAL←] OK
 
-css
-Copy code
-M{id}:{COMMAND}:{SPEED}:{DIR}
-Examples:
-
-ruby
-Copy code
-M1:START:45:CW
-M4:SET:77:CCW
-M1:STOP
-Arduino should reply OK (or any text) to confirm receipt.
-
-Testing Without Arduino
-You can fake the serial device using socat:
-
-bash
-Copy code
-sudo apt install socat
+# 10. Test without Arduino (optional)
 socat -d -d pty,raw,echo=0 pty,raw,echo=0
-This prints something like:
-
-swift
-Copy code
-PTY is /dev/pts/5
-PTY is /dev/pts/6
-Then run:
-
-bash
-Copy code
+# Example output:
+# PTY is /dev/pts/5
+# PTY is /dev/pts/6
+# Then in one terminal:
 SERIAL_PORT=/dev/pts/5 PORT=5173 ./build/one_motor
-In another terminal, monitor responses:
-
-bash
-Copy code
+# And in another terminal:
 cat /dev/pts/6
-File Structure
-swift
-Copy code
-one-motor-cpp/
-├── CMakeLists.txt
-├── README.md
-├── main.cpp
-├── HttpServer.cpp
-├── HttpServer.hpp
-├── MotorController.cpp
-├── MotorController.hpp
-├── public/
-│   ├── index.html
-│   ├── script.js
-│   └── style.css
-└── build/
-Debugging Tips
-No READY message
-If you see:
 
-scss
-Copy code
-[SERIAL←] (no READY in 3000 ms)
-It’s harmless unless your Arduino sketch expects to send “READY”.
-You can modify MotorController to skip waiting.
-
-CW/CCW reversed
-If the motor spins the same direction for both, fix direction pin logic in Arduino code — the C++ side is correct.
-
-Permission denied
-If serial access fails:
-
-bash
-Copy code
+# 11. Fix permission errors (if needed)
 sudo usermod -a -G dialout $USER
 newgrp dialout
-Then replug the Arduino.
-
-Developer Notes
-Query-string parser in main.cpp correctly handles multiple parameters (speed, dir).
-
-API and serial responses are logged in real time to stderr.
-
-Can be extended for:
-
-Multiple Arduinos
-
-PWM tuning
-
-Closed-loop control with sensors
-
-License
-TBD (personal/lab use).
-
-Quick Summary
-Setup once:
-
-bash
-Copy code
-sudo apt install g++ cmake make git socat arduino
-Build and run:
-
-bash
-Copy code
-cd ~/Documents/one-motor-cpp
-cmake -S . -B build
-cmake --build build -j8
-SERIAL_PORT=/dev/serial/by-id/usb-Arduino_LLC_Arduino_Leonardo-if00 \
-PORT=5173 ./build/one_motor
-Use:
-Visit http://127.0.0.1:5173
-or use curl commands to control motors.
+# Then replug Arduino
