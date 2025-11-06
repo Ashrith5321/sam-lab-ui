@@ -251,15 +251,11 @@ Closed-loop control with sensors
 License
 TBD (personal/lab use).
 
-yaml
+Quick Summary
+Setup once:
+
+bash
 Copy code
-
----
-
-### Quick Summary (
-
-**Setup once:**
-```bash
 sudo apt install g++ cmake make git socat arduino
 Build & run:
 
@@ -271,4 +267,5 @@ cmake --build build -j8
 SERIAL_PORT=/dev/serial/by-id/usb-Arduino_LLC_Arduino_Leonardo-if00 \
 PORT=5173 ./build/one_motor
 Use:
-Visit http://127.0.0.1:5173 or use curl commands.
+
+Visit http://127.0.0.1:5173 or use the curl commands above.
