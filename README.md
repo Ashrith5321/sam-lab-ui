@@ -38,7 +38,6 @@ Copy code
 
 1. Connect your **Arduino Leonardo** (or compatible board).
 2. Identify its serial path:
-
    ```bash
    ls /dev/serial/by-id/
 Example output:
@@ -57,15 +56,13 @@ and replies with:
 nginx
 Copy code
 OK
-If you don’t have the firmware yet, you can create a basic sketch that parses lines over Serial and sets motor direction pins accordingly.
-
 After flashing, ensure the board is detected:
 
 bash
 Copy code
 dmesg | grep tty
 Build Instructions
-Clone the repo (if not already):
+Clone the repository:
 
 bash
 Copy code
@@ -84,13 +81,13 @@ Copy code
 rm -rf build
 cmake -S . -B build
 cmake --build build -j8
-This produces:
+This produces the executable:
 
 bash
 Copy code
 build/one_motor
 Running the Server
-Run with your serial device path and port:
+Run with your serial device path and desired port:
 
 bash
 Copy code
@@ -98,7 +95,7 @@ SERIAL_PORT=/dev/serial/by-id/usb-Arduino_LLC_Arduino_Leonardo-if00 \
 PORT=5173 \
 STATIC_DIR=./public \
 ./build/one_motor
-You’ll see something like:
+Example output:
 
 pgsql
 Copy code
@@ -114,7 +111,6 @@ http://127.0.0.1:5173
 API Reference
 1. Status
 GET /api/status
-
 Check connection status to Arduino:
 
 bash
@@ -137,15 +133,18 @@ command	start, stop, or set
 speed	0–100 (integer)
 dir	CW or CCW
 
-Start motor
+Start motor:
+
 bash
 Copy code
 curl "http://127.0.0.1:5173/api/motor/1/start?speed=40&dir=CW"
-Stop motor
+Stop motor:
+
 bash
 Copy code
 curl "http://127.0.0.1:5173/api/motor/1/stop"
-Change speed/direction
+Change speed/direction:
+
 bash
 Copy code
 curl "http://127.0.0.1:5173/api/motor/1/set?speed=30&dir=CCW"
@@ -175,7 +174,7 @@ M4:SET:77:CCW
 M1:STOP
 Arduino should reply OK (or any text) to confirm receipt.
 
-Test Locally Without Arduino
+Testing Without Arduino
 You can fake the serial device using socat:
 
 bash
@@ -199,7 +198,7 @@ bash
 Copy code
 cat /dev/pts/6
 File Structure
-cpp
+swift
 Copy code
 one-motor-cpp/
 ├── CMakeLists.txt
@@ -209,11 +208,11 @@ one-motor-cpp/
 ├── HttpServer.hpp
 ├── MotorController.cpp
 ├── MotorController.hpp
-├── public/            # frontend UI
+├── public/
 │   ├── index.html
 │   ├── script.js
 │   └── style.css
-└── build/             # build output
+└── build/
 Debugging Tips
 No READY message
 If you see:
@@ -221,10 +220,11 @@ If you see:
 scss
 Copy code
 [SERIAL←] (no READY in 3000 ms)
-It’s harmless unless your Arduino sketch expects to send “READY”. You can modify MotorController to skip waiting.
+It’s harmless unless your Arduino sketch expects to send “READY”.
+You can modify MotorController to skip waiting.
 
 CW/CCW reversed
-If motor still spins same direction for both, fix direction pin logic in Arduino code — the C++ side is correct now.
+If the motor spins the same direction for both, fix direction pin logic in Arduino code — the C++ side is correct.
 
 Permission denied
 If serial access fails:
@@ -236,11 +236,11 @@ newgrp dialout
 Then replug the Arduino.
 
 Developer Notes
-The query-string parser in main.cpp has been fixed to correctly parse both speed and dir keys.
+Query-string parser in main.cpp correctly handles multiple parameters (speed, dir).
 
 API and serial responses are logged in real time to stderr.
 
-The system can easily be extended for:
+Can be extended for:
 
 Multiple Arduinos
 
@@ -251,17 +251,13 @@ Closed-loop control with sensors
 License
 TBD (personal/lab use).
 
-yaml
+Quick Summary
+Setup once:
+
+bash
 Copy code
-
----
-
-### Quick Summary (
-
-**Setup once:**
-```bash
 sudo apt install g++ cmake make git socat arduino
-Build & run:
+Build and run:
 
 bash
 Copy code
@@ -271,4 +267,5 @@ cmake --build build -j8
 SERIAL_PORT=/dev/serial/by-id/usb-Arduino_LLC_Arduino_Leonardo-if00 \
 PORT=5173 ./build/one_motor
 Use:
-Visit http://127.0.0.1:5173 or use curl commands.
+Visit http://127.0.0.1:5173
+or use curl commands to control motors.
