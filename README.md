@@ -1,111 +1,196 @@
-# one-motor-cpp
+SAM Lab Motor Control UI (RPM + Encoder Support)
 
-A minimal C++ HTTP + serial bridge to control up to 9 DC motors on an **Arduino Leonardo** via browser or API.  
-The project serves a web UI (`./public`) and communicates with the Arduino using serial commands like `M1:START:37:CCW`.
+A minimal C++ HTTP + Serial control stack for controlling up to 9 DC motors from a browser or API, with closed-loop RPM control using encoders (currently enabled for a subset of motors).
 
----
+This project is designed for robotics lab use, prioritizing:
 
-## Features
+deterministic behavior
 
-- Control up to 9 motors with speed (0–100%) and direction (CW/CCW)
-- HTTP API and browser UI
-- Native C++ HTTP server (no dependencies)
-- Real-time serial communication with Arduino
-- Cross-platform (tested on Ubuntu/Linux & WSL)
+clear hardware/software separation
 
----
+scalability to more capable microcontrollers
 
-## Requirements
+🚀 Features
+Core
 
-| Tool | Purpose | Install command (Ubuntu/Debian) |
-|------|----------|--------------------------------|
-| C++17 Compiler | Build backend | sudo apt install g++ |
-| CMake | Build system | sudo apt install cmake |
-| Make | Build automation | sudo apt install make |
-| Git | Version control | sudo apt install git |
-| Arduino IDE / CLI | Flash firmware to Arduino | sudo apt install arduino or arduino-cli |
+Control up to 9 DC motors
 
----
+Browser-based UI + REST API
 
-## Full Setup and Run (All Commands in One Block)
+Native C++ HTTP server (no external dependencies)
 
-```bash
-# 1. Install dependencies
+Real-time serial communication with microcontroller
+
+Cross-platform (Ubuntu/Linux, WSL tested)
+
+RPM + Encoder (NEW)
+
+Command motors using RPM instead of voltage/speed %
+
+Closed-loop PI RPM control using quadrature encoders
+
+Live encoder telemetry (measured RPM, counts, PWM)
+
+Max supported RPM: 1500 RPM (output shaft)
+
+⚠️ Important Hardware Note (READ THIS)
+
+Due to Arduino Leonardo (ATmega32u4) interrupt limitations:
+
+✅ RPM commands are supported for all 9 motors
+
+✅ Encoder feedback + closed-loop control are enabled for Motor 1 and Motor 2
+
+❌ Motors 3–9 currently run open-loop (feed-forward only)
+
+This is an intentional design decision to ensure reliability at high RPM.
+
+If you require encoder feedback on more motors, see Scaling Options below.
+
+🧠 Control Architecture
+Open-loop motors (no encoder)
+RPM command → feed-forward PWM → motor
+
+Closed-loop motors (with encoder)
+RPM command → PI controller → PWM → motor
+                   ↑
+               encoder feedback
+
+🔧 Hardware Setup
+Motor
+
+Pololu 10:1 Micro Metal Gearmotor (HPCB 12V)
+
+Encoder: 12 CPR quadrature
+
+Gear ratio: 9.96:1
+
+Effective counts/output-rev ≈ 240
+
+Power
+
+Motors powered from external 12V supply
+
+Arduino must NOT power motors
+
+All grounds must be common
+
+Encoder Wiring (Motors 1 & 2)
+Signal	Motor 1	Motor 2
+Encoder A	D2	D3
+Encoder B	D4	D5
+VCC	5V	5V
+GND	GND	GND
+📦 Software Components
+Arduino Firmware
+
+Encoder pulse counting (interrupt-based)
+
+RPM computation
+
+PI control loop (50 ms)
+
+Serial protocol for commands + telemetry
+
+Backend (C++)
+
+Serial bridge to Arduino
+
+Motor abstraction using RPM
+
+REST API + static file server
+
+Frontend (HTML/JS)
+
+Per-motor RPM input
+
+Start / Set / Stop buttons
+
+Live telemetry polling (200 ms)
+
+🖥️ API Endpoints
+Status
+GET /api/status
+
+Motor Control
+GET /api/motor/{id}/start?rpm=1000&dir=CW
+GET /api/motor/{id}/set?rpm=1200&dir=CCW
+GET /api/motor/{id}/stop
+
+Telemetry
+GET /api/motor/{id}/read
+GET /api/encoders
+
+🧪 Example Serial Commands (Arduino side)
+M1:START:1000:CW
+M1:SET:1200:CCW
+M1:STOP
+M1:READ
+ENC
+
+🛠️ Build & Run
+Install dependencies
 sudo apt update && sudo apt install -y g++ cmake make git socat arduino
 
-# 2. Clone repository
+Clone
 git clone https://github.com/Ashrith5321/sam-lab-ui.git
-cd one-motor-cpp
+cd sam-lab-ui
 
-# 3. Build
+Build
 rm -rf build
 cmake -S . -B build
 cmake --build build -j8
 
-# 4. Check Arduino connection
-ls /dev/serial/by-id/
-
-# Example output:
-# usb-Arduino_LLC_Arduino_Leonardo-if00
-
-# 5. Flash your Arduino manually using Arduino IDE or arduino-cli
-#    Make sure it supports the following commands:
-#    M{id}:START:{speed}:{dir}
-#    M{id}:STOP
-#    M{id}:SET:{speed}:{dir}
-#    And replies with "OK"
-
-# 6. Verify Arduino detection
-dmesg | grep tty
-
-# 7. Run server
+Run
 SERIAL_PORT=/dev/serial/by-id/usb-Arduino_LLC_Arduino_Leonardo-if00 \
 PORT=5173 \
 STATIC_DIR=./public \
 ./build/one_motor
 
-# Expected output:
-# Serial open at /dev/serial/by-id/usb-Arduino_LLC_Arduino_Leonardo-if00 @115200
-# [SERIAL←] (no READY in 3000 ms)
-# HTTP serving ./public on http://127.0.0.1:5173
-# HTTP listening on http://127.0.0.1:5173
 
-# 8. Open the UI
-# Visit http://127.0.0.1:5173
+Open:
 
-# 9. API Tests (examples)
-# Check Arduino connection
-curl "http://127.0.0.1:5173/api/status"
+http://127.0.0.1:5173
 
-# Start motor
-curl "http://127.0.0.1:5173/api/motor/1/start?speed=40&dir=CW"
-
-# Stop motor
-curl "http://127.0.0.1:5173/api/motor/1/stop"
-
-# Change direction/speed
-curl "http://127.0.0.1:5173/api/motor/1/set?speed=30&dir=CCW"
-
-# Example debug output:
-# DEBUG handler: method=GET path='/api/motor/1/start?speed=37&dir=CCW'
-# DEBUG match: id=1 cmd=start qs='speed=37&dir=CCW'
-# DEBUG kv: 'speed'='37'
-# DEBUG kv: 'dir'='CCW'
-# DEBUG parsed: speed=37 dirStr='CCW' -> CCW
-# [SERIAL→] M1:START:37:CCW
-# [SERIAL←] OK
-
-# 10. Test without Arduino (optional)
+🧪 Test Without Hardware (Optional)
 socat -d -d pty,raw,echo=0 pty,raw,echo=0
-# Example output:
-# PTY is /dev/pts/5
-# PTY is /dev/pts/6
-# Then in one terminal:
+
+
+Terminal 1:
+
 SERIAL_PORT=/dev/pts/5 PORT=5173 ./build/one_motor
-# And in another terminal:
+
+
+Terminal 2:
+
 cat /dev/pts/6
 
-# 11. Fix permission errors (if needed)
-sudo usermod -a -G dialout $USER
-newgrp dialout
-# Then replug Arduino
+📈 Scaling Options (Future Work)
+
+If you need encoder feedback on all motors:
+
+Recommended
+
+Teensy 4.1 (hardware quadrature decoding)
+
+ESP32 (PCNT units)
+
+Alternatives
+
+External encoder counters (SPI/I²C)
+
+Magnetic encoders
+
+Backend + UI do not need to change for these upgrades.
+
+🧑‍🔬 Intended Use
+
+This project is intended for:
+
+Robotics research & labs
+
+Motor characterization
+
+Control systems experimentation
+
+Educational platforms
