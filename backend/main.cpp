@@ -4,6 +4,7 @@
 #include <string>
 #include <algorithm>  // for std::min/std::max
 #include <cctype>
+#include <sstream>
 #include "HttpServer.hpp"
 #include "MotorController.hpp"
 
@@ -44,7 +45,47 @@ auto handler = [&mc](const std::string& method,
         return std::string("{\"status\":\"") + (s ? *s : "NO-REPLY") + "\"}";
     }
 
-    // 2) /api/motor/{id}/{start|stop|set}?speed=..&dir=..
+    auto jsonEscape = [](const std::string& in) {
+        std::string out;
+        out.reserve(in.size() + 8);
+        for (char c : in) {
+            switch (c) {
+                case '\\': out += "\\\\"; break;
+                case '"':  out += "\\\""; break;
+                case '\n': out += "\\n"; break;
+                case '\r': out += "\\r"; break;
+                case '\t': out += "\\t"; break;
+                default:    out += c; break;
+            }
+        }
+        return out;
+    };
+
+    // 2) /api/encoders  (poll all motors)
+    if (path == "/api/encoders") {
+        auto line = mc.readAll();
+        status = 200;
+        // pass through as a raw string (still JSON)
+        return std::string("{\"line\":\"") + jsonEscape(line ? *line : "") + "\"}";
+    }
+
+    // 3) /api/motor/{id}/read
+    {
+        std::smatch mr;
+        std::regex rRead(R"(^/api/motor/(\d+)/read$)");
+        if (std::regex_match(path, mr, rRead)) {
+            int id = std::stoi(mr[1]);
+            if (id < 1 || id > 9) {
+                status = 400;
+                return "{\"error\":\"invalid id; expected 1..9\"}";
+            }
+            auto line = mc.read(id);
+            status = 200;
+            return std::string("{\"line\":\"") + jsonEscape(line ? *line : "") + "\"}";
+        }
+    }
+
+    // 4) /api/motor/{id}/{start|stop|set}?rpm=..&dir=..
     std::smatch m;
     std::regex rSet(R"(^/api/motor/(\d+)/(start|stop|set)(?:\?([^#]*))?$)");
 
@@ -62,7 +103,7 @@ auto handler = [&mc](const std::string& method,
             return "{\"error\":\"invalid id; expected 1..9\"}";
         }
 
-        int speed = 0;
+        int rpm = 0;
         std::string dirStr = "CW";   // default direction if none specified
 
         // --- Simple query string parser: speed=..&dir=.. ---
@@ -78,8 +119,9 @@ auto handler = [&mc](const std::string& method,
 
             std::cerr << "DEBUG kv: '" << k << "'='" << v << "'" << std::endl;
 
-            if (k == "speed") {
-                speed = std::max(0, std::min(100, std::atoi(v.c_str())));
+            if (k == "rpm") {
+                // We cap in firmware too, but clamp here for nicer behavior.
+                rpm = std::max(0, std::min(1500, std::atoi(v.c_str())));
             } else if (k == "dir") {
                 dirStr = v;
             }
@@ -102,7 +144,7 @@ auto handler = [&mc](const std::string& method,
             d = Direction::CCW;
         }
 
-        std::cerr << "DEBUG parsed: speed=" << speed
+        std::cerr << "DEBUG parsed: rpm=" << rpm
                   << " dirStr='" << dirStr << "' -> "
                   << (d == Direction::CCW ? "CCW" : "CW")
                   << std::endl;
@@ -110,11 +152,11 @@ auto handler = [&mc](const std::string& method,
 
         bool ok = false;
         if (cmd == "start") {
-            ok = mc.start(id, speed, d);
+            ok = mc.start(id, rpm, d);
         } else if (cmd == "stop") {
             ok = mc.stop(id);
         } else if (cmd == "set") {
-            ok = mc.set(id, speed, d);
+            ok = mc.set(id, rpm, d);
         }
 
         status = ok ? 200 : 500;

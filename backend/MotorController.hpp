@@ -12,9 +12,19 @@ public:
     // returns Arduino one-line reply if available
     std::optional<std::string> status();
 
-    bool start(int id, int speedPercent, Direction dir);
+    // Closed-loop speed control (RPM at OUTPUT SHAFT, after gearbox)
+    bool start(int id, int targetRpm, Direction dir);
     bool stop(int id);
-    bool set(int id, int speedPercent, Direction dir);
+    bool set(int id, int targetRpm, Direction dir);
+
+    // One-shot readback of speed/encoder for a motor.
+    // Firmware replies with a single line like:
+    //  M1:RPM:1234:COUNT:567: PWM:2048:TGT:1500
+    std::optional<std::string> read(int id);
+
+    // Read all motors at once (best-effort). Firmware replies one line.
+    //  ENC M1=...;M2=...;...
+    std::optional<std::string> readAll();
 
 private:
     SerialPort sp_;

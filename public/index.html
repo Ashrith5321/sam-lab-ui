@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>9-Motor Controller</title>
+  <title>9-Motor RPM Controller</title>
   <style>
     body { font-family: system-ui, sans-serif; margin: 20px; }
     h1 { margin-bottom: 6px; }
@@ -14,10 +14,12 @@
     button { padding: 6px 10px; border-radius: 8px; border:1px solid #ccc; cursor: pointer; }
     .dir { display:flex; gap:4px; }
     .status { font-size: 12px; color:#666; margin-bottom: 12px; }
+    .speed-input { width: 90px; padding: 4px 6px; border-radius: 6px; border: 1px solid #ccc; text-align: right; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
   </style>
 </head>
 <body>
-  <h1>9-Motor Controller</h1>
+  <h1>9-Motor RPM Controller</h1>
   <div class="status">Status: <span id="status">(checking...)</span></div>
   <div class="grid" id="grid"></div>
 
@@ -29,20 +31,27 @@ async function api(path){
 }
 
 async function refreshStatus(){
-  try{ const j = await api('/api/status');
+  try {
+    const j = await api('/api/status');
     document.getElementById('status').textContent = j.status || 'OK';
-  } catch(e){ document.getElementById('status').textContent = 'No reply'; }
+  } catch(e) {
+    document.getElementById('status').textContent = 'No reply';
+  }
 }
 
 function motorCard(id){
-  const el = document.createElement('div'); el.className='card';
+  const el = document.createElement('div'); 
+  el.className = 'card';
+
   el.innerHTML = `
     <h3>Motor ${id}</h3>
-    <div class="row"><div class="label">Speed</div>
-      <input type="range" min="0" max="100" value="0" id="speed-${id}" />
-      <span id="spv-${id}">0%</span>
+    <div class="row">
+      <div class="label">Target</div>
+      <input type="number" min="0" max="1500" value="0" id="rpm-${id}" class="speed-input" />
+      <span class="mono">rpm</span>
     </div>
-    <div class="row"><div class="label">Dir</div>
+    <div class="row">
+      <div class="label">Dir</div>
       <div class="dir">
         <label><input name="dir-${id}" type="radio" value="CW" checked> CW</label>
         <label><input name="dir-${id}" type="radio" value="CCW"> CCW</label>
@@ -53,27 +62,96 @@ function motorCard(id){
       <button id="set-${id}">Set</button>
       <button id="stop-${id}">Stop</button>
     </div>
+
+    <div class="row">
+      <div class="label">Measured</div>
+      <div class="mono"><span id="meas-${id}">--</span> rpm</div>
+    </div>
+    <div class="row">
+      <div class="label">Encoder</div>
+      <div class="mono"><span id="count-${id}">--</span></div>
+    </div>
+    <div class="row">
+      <div class="label">PWM</div>
+      <div class="mono"><span id="pwm-${id}">--</span></div>
+    </div>
+    <div class="row">
+      <div class="label">State</div>
+      <div class="mono"><span id="en-${id}">--</span> / <span id="dirv-${id}">--</span></div>
+    </div>
   `;
 
-  const speed = el.querySelector(`#speed-${id}`);
-  const spv = el.querySelector(`#spv-${id}`);
-  speed.addEventListener('input', ()=>{ spv.textContent = speed.value + '%'; });
+  const rpm = el.querySelector(`#rpm-${id}`);
+
+  // clamp to [0,1500]
+  function clampRpm() {
+    let v = parseInt(rpm.value, 10);
+    if (Number.isNaN(v)) v = 0;
+    if (v < 0) v = 0;
+    if (v > 1500) v = 1500;
+    rpm.value = v;
+  }
+
+  rpm.addEventListener('input', clampRpm);
+  rpm.addEventListener('change', clampRpm);
 
   function getDir(){
     return (el.querySelector(`input[name="dir-${id}"]:checked`) || {}).value || 'CW';
   }
 
   el.querySelector(`#start-${id}`).onclick = async ()=>{
-    const q = `speed=${+speed.value}&dir=${getDir()}`;
+    clampRpm();
+    const q = `rpm=${+rpm.value}&dir=${getDir()}`;
     await api(`/api/motor/${id}/start?${q}`);
   };
+
   el.querySelector(`#set-${id}`).onclick = async ()=>{
-    const q = `speed=${+speed.value}&dir=${getDir()}`;
+    clampRpm();
+    const q = `rpm=${+rpm.value}&dir=${getDir()}`;
     await api(`/api/motor/${id}/set?${q}`);
   };
+
   el.querySelector(`#stop-${id}`).onclick = async ()=>{
     await api(`/api/motor/${id}/stop`);
   };
+
+  // telemetry elements
+  const meas = el.querySelector(`#meas-${id}`);
+  const count = el.querySelector(`#count-${id}`);
+  const pwm = el.querySelector(`#pwm-${id}`);
+  const en = el.querySelector(`#en-${id}`);
+  const dirv = el.querySelector(`#dirv-${id}`);
+
+  // Parse firmware line:
+  // M1:RPM:1234:COUNT:567:PWM:2048:TGT:1500:DIR:CW:EN:1
+  function parseLine(line){
+    const out = {};
+    if(!line) return out;
+    const parts = line.split(':');
+    // parts[0] = 'M1'
+    for(let i=1;i+1<parts.length;i+=2){
+      out[parts[i]] = parts[i+1];
+    }
+    return out;
+  }
+
+  async function poll(){
+    try {
+      const j = await api(`/api/motor/${id}/read`);
+      const o = parseLine(j.line || '');
+      if(o.RPM !== undefined) meas.textContent = o.RPM;
+      if(o.COUNT !== undefined) count.textContent = o.COUNT;
+      if(o.PWM !== undefined) pwm.textContent = o.PWM;
+      if(o.EN !== undefined) en.textContent = (o.EN === '1') ? 'EN' : 'OFF';
+      if(o.DIR !== undefined) dirv.textContent = o.DIR;
+    } catch(e) {
+      // ignore transient errors
+    }
+  }
+
+  // start polling immediately
+  poll();
+  setInterval(poll, 200);
 
   return el;
 }

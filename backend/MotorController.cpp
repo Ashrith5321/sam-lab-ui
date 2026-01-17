@@ -22,13 +22,13 @@ std::optional<std::string> MotorController::status(){
     std::string line; if (sp_.readLine(line, 500)) return line; else return std::nullopt;
 }
 
-bool MotorController::start(int id, int speedPercent, Direction dir){
+bool MotorController::start(int id, int targetRpm, Direction dir){
     std::cerr << "DEBUG start: id=" << id
-              << " speed=" << speedPercent
+              << " rpm=" << targetRpm
               << " dir=" << (dir==Direction::CW ? "CW" : "CCW") << "\n";
 
     std::ostringstream ss;
-    ss << "M"<<id<<":START:"<<speedPercent<<":"<<(dir==Direction::CW?"CW":"CCW");
+    ss << "M"<<id<<":START:"<<targetRpm<<":"<<(dir==Direction::CW?"CW":"CCW");
     return sendLine(ss.str());
 }
 
@@ -38,10 +38,21 @@ bool MotorController::stop(int id){
     return sendLine(ss.str());
 }
 
-bool MotorController::set(int id, int speedPercent, Direction dir){
+bool MotorController::set(int id, int targetRpm, Direction dir){
     std::ostringstream ss;
-    ss << "M"<<id<<":SET:"<<speedPercent<<":"<<(dir==Direction::CW?"CW":"CCW");
+    ss << "M"<<id<<":SET:"<<targetRpm<<":"<<(dir==Direction::CW?"CW":"CCW");
     return sendLine(ss.str());
+}
+
+std::optional<std::string> MotorController::read(int id){
+    std::ostringstream ss; ss << "M"<<id<<":READ";
+    sp_.writeLine(ss.str());
+    std::string line; if (sp_.readLine(line, 200)) return line; else return std::nullopt;
+}
+
+std::optional<std::string> MotorController::readAll(){
+    sp_.writeLine("ENC");
+    std::string line; if (sp_.readLine(line, 400)) return line; else return std::nullopt;
 }
 
 bool MotorController::sendLine(const std::string &line, int expectAckMs){
