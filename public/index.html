@@ -127,13 +127,37 @@ function motorCard(id){
   function parseLine(line){
     const out = {};
     if(!line) return out;
-    const parts = line.split(':');
-    // parts[0] = 'M1'
-    for(let i=1;i+1<parts.length;i+=2){
-      out[parts[i]] = parts[i+1];
+    line = line.trim();
+
+    // New firmware CSV format:
+    // M,<id>,<rpm>,<count>,<pwm>,<tgt>,<dir>,<en>
+    // Example: M,1,123,456,3000,1500,1,1
+    if(line.startsWith("M,")) {
+      const p = line.split(",");
+      if(p.length >= 8) {
+        out.RPM   = p[2];
+        out.COUNT = p[3];
+        out.PWM   = p[4];
+        out.TGT   = p[5];
+        out.DIR   = (p[6] === "1") ? "CW" : "CCW";
+        out.EN    = p[7];  // "1" or "0"
+      }
+      return out;
     }
+
+    // Old firmware colon format fallback:
+    // M1:RPM:1234:COUNT:567:PWM:2048:TGT:1500:DIR:CW:EN:1
+    if(line.startsWith("M") && line.includes(":")) {
+      const parts = line.split(':');
+      for(let i=1;i+1<parts.length;i+=2){
+        out[parts[i]] = parts[i+1];
+      }
+      return out;
+    }
+
     return out;
   }
+
 
   async function poll(){
     try {

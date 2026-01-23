@@ -47,13 +47,25 @@ bool MotorController::set(int id, int targetRpm, Direction dir){
 std::optional<std::string> MotorController::read(int id){
     std::ostringstream ss; ss << "M"<<id<<":READ";
     sp_.writeLine(ss.str());
-    std::string line; if (sp_.readLine(line, 200)) return line; else return std::nullopt;
+    std::string line;
+    if (sp_.readLine(line, 500)) return line;
+    return std::nullopt;
 }
+
 
 std::optional<std::string> MotorController::readAll(){
     sp_.writeLine("ENC");
-    std::string line; if (sp_.readLine(line, 400)) return line; else return std::nullopt;
+
+    std::ostringstream out;
+    for (int i = 0; i < 9; i++) {
+        std::string line;
+        if (!sp_.readLine(line, 400)) break;
+        out << line;
+        if (i != 8) out << "\n";
+    }
+    return out.str();
 }
+
 
 bool MotorController::sendLine(const std::string &line, int expectAckMs){
     std::cerr << "[SERIAL→] " << line << "\n";

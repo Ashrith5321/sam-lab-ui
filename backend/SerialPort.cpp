@@ -6,6 +6,8 @@
 #include <cstring>
 #include <iostream>
 #include <sys/ioctl.h>
+#include <chrono>
+
 
 
 static speed_t baudToFlag(int baud){
@@ -27,7 +29,7 @@ bool SerialPort::open(const std::string &device, int baud){
     int flags = fcntl(fd_, F_GETFL, 0);
     fcntl(fd_, F_SETFL, flags & ~O_NONBLOCK);
 
-    // 👉 Assert DTR/RTS so ATmega32U4 CDC is fully "open"
+    // Assert DTR/RTS so ATmega32U4 CDC is fully "open"
     int mflags = 0;
     if (ioctl(fd_, TIOCMGET, &mflags) == 0) {
         mflags |= TIOCM_DTR | TIOCM_RTS;
@@ -68,18 +70,51 @@ bool SerialPort::readLine(std::string &out, int max_ms){
 
     std::string buf;
     char ch;
-    auto deadline = (max_ms > 0) ? (int)max_ms : -1;
+
+    auto start = std::chrono::steady_clock::now();
+
     while (true){
-        if (deadline >= 0){
-            fd_set rfds; FD_ZERO(&rfds); FD_SET(fd_, &rfds);
-            struct timeval tv{ deadline/1000, (deadline%1000)*1000 };
-            int rv = select(fd_+1, &rfds, nullptr, nullptr, &tv);
-            if (rv <= 0) return false; // timeout or error
+        int remaining = max_ms;
+        if (max_ms > 0) {
+            auto now = std::chrono::steady_clock::now();
+            int elapsed = (int)std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+            remaining = max_ms - elapsed;
+            if (remaining <= 0) return false;
         }
+
+        fd_set rfds;
+        FD_ZERO(&rfds);
+        FD_SET(fd_, &rfds);
+
+        struct timeval tv;
+        struct timeval* ptv = nullptr;
+        if (max_ms > 0) {
+            tv = { remaining/1000, (remaining%1000)*1000 };
+            ptv = &tv;
+        } else {
+            // No timeout requested: still avoid hard blocking forever
+            tv = { 0, 200000 }; // 200ms tick
+            ptv = &tv;
+        }
+
+        int rv = select(fd_+1, &rfds, nullptr, nullptr, ptv);
+        if (rv < 0) return false;
+        if (rv == 0) {
+            if (max_ms > 0) continue;
+            // if max_ms<=0, just keep waiting in ticks
+            continue;
+        }
+
         ssize_t n = ::read(fd_, &ch, 1);
         if (n == 1){
             if (ch == '\n') { out = buf; return true; }
             if (ch != '\r') buf.push_back(ch);
+        } else if (n == 0) {
+            // nothing read; loop again
+            continue;
+        } else {
+            // n < 0: error
+            return false;
         }
     }
 }
