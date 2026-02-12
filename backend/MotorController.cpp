@@ -13,6 +13,15 @@ bool MotorController::connect(const std::string &device, int baud){
         std::cerr << "[SERIAL←] " << line << "\n";
     } else {
         std::cerr << "[SERIAL←] (no READY in " << ms << " ms)\n";
+        // Teensy doesn't auto-reset, so test with STATUS command
+        std::cerr << "[SERIAL→] Sending STATUS to verify connection...\n";
+        sp_.writeLine("STATUS");
+        if (sp_.readLine(line, 1000)) {
+            std::cerr << "[SERIAL←] " << line << " (connection OK)\n";
+        } else {
+            std::cerr << "[SERIAL←] No response to STATUS - check wiring!\n";
+            return false;
+        }
     }
     return true;
 }

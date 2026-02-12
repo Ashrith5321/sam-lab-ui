@@ -1,196 +1,451 @@
-SAM Lab Motor Control UI (RPM + Encoder Support)
+# DC Motor Control System with Encoder Feedback
 
-A minimal C++ HTTP + Serial control stack for controlling up to 9 DC motors from a browser or API, with closed-loop RPM control using encoders (currently enabled for a subset of motors).
+A high-performance C++ HTTP + Serial control stack for controlling up to 9 DC motors from a browser or REST API, featuring closed-loop RPM control with quadrature encoder feedback.
 
-This project is designed for robotics lab use, prioritizing:
+Built for robotics research, this system prioritizes deterministic behavior, clear hardware/software separation, and real-time performance.
 
-deterministic behavior
+---
 
-clear hardware/software separation
+## Features
 
-scalability to more capable microcontrollers
+### Core Capabilities
+- **Control up to 9 DC motors** via dual PCA9685 PWM drivers
+- **Browser-based UI + REST API** for remote control
+- **Native C++ HTTP server** (no external dependencies)
+- **Real-time serial communication** with Teensy 4.1 microcontroller
+- **Cross-platform** (Linux, Ubuntu, WSL tested)
 
-🚀 Features
-Core
+### Encoder + Closed-Loop Control
+- **Command motors using RPM** (not voltage or duty cycle)
+- **PI closed-loop control** for precise speed regulation
+- **Live encoder telemetry**: measured RPM, encoder counts, PWM duty
+- **Configurable encoder support**: currently enabled for Motors 1 & 2
+- **Max supported RPM**: 1500 RPM (output shaft after gearbox)
 
-Control up to 9 DC motors
+### Control Modes
+- **Closed-loop (with encoder)**: RPM command → PI controller → PWM → motor ← encoder feedback
+- **Open-loop (no encoder)**: RPM command → feed-forward PWM → motor
 
-Browser-based UI + REST API
+---
 
-Native C++ HTTP server (no external dependencies)
+## Hardware
 
-Real-time serial communication with microcontroller
+### Microcontroller: Teensy 4.1
 
-Cross-platform (Ubuntu/Linux, WSL tested)
+**Why Teensy 4.1?**
+- ✅ **All pins support interrupts** (no encoder pin limitations)
+- ✅ **600 MHz ARM Cortex-M7** processor for fast control loops
+- ✅ **Dedicated I2C pins**: SDA=18, SCL=19 (no conflicts)
+- ✅ **Robust USB serial** communication
+- ✅ **3.3V logic** with 5V tolerant inputs
 
-RPM + Encoder (NEW)
+### Motors & Encoders
 
-Command motors using RPM instead of voltage/speed %
+**Motor**: Pololu 10:1 Micro Metal Gearmotor HPCB (12V)
+- Integrated 12 CPR quadrature encoder
+- Gear ratio: 9.96:1
+- Effective resolution: ~240 counts per output shaft revolution
 
-Closed-loop PI RPM control using quadrature encoders
+### PWM Drivers
 
-Live encoder telemetry (measured RPM, counts, PWM)
+**Two PCA9685 16-channel PWM boards**:
+- Board 1: I2C address `0x40` (controls Motors 1-8)
+- Board 2: I2C address `0x41` (controls Motor 9)
+- PWM frequency: 1600 Hz
+- Each motor uses 2 channels (IN1, IN2 for H-bridge control)
 
-Max supported RPM: 1500 RPM (output shaft)
+---
 
-⚠️ Important Hardware Note (READ THIS)
+## Wiring Guide
 
-Due to Arduino Leonardo (ATmega32u4) interrupt limitations:
+### Teensy 4.1 to PCA9685 (Both Boards)
 
-✅ RPM commands are supported for all 9 motors
+| Signal | Teensy Pin | PCA9685 Pin |
+|--------|-----------|-------------|
+| 5V     | 5V        | VCC         |
+| GND    | GND       | GND         |
+| SDA    | 18        | SDA         |
+| SCL    | 19        | SCL         |
 
-✅ Encoder feedback + closed-loop control are enabled for Motor 1 and Motor 2
+### Encoder Wiring (Motors 1 & 2)
 
-❌ Motors 3–9 currently run open-loop (feed-forward only)
+| Signal     | Motor 1 | Motor 2 | Notes              |
+|------------|---------|---------|-------------------|
+| Encoder A  | Pin 2   | Pin 4   | Interrupt capable |
+| Encoder B  | Pin 3   | Pin 5   | Interrupt capable |
+| VCC        | 5V      | 5V      | Encoder power     |
+| GND        | GND     | GND     | Common ground     |
 
-This is an intentional design decision to ensure reliability at high RPM.
+### Motor Power
 
-If you require encoder feedback on more motors, see Scaling Options below.
+⚠️ **CRITICAL**: Motors must be powered from an **external 12V supply**
+- **DO NOT** power motors from Teensy
+- **MUST** connect all grounds together (Teensy, PCA9685, motor driver, encoders)
+- Add 0.1µF capacitors across motor terminals to reduce EMI
 
-🧠 Control Architecture
-Open-loop motors (no encoder)
-RPM command → feed-forward PWM → motor
+### Adding More Encoders
 
-Closed-loop motors (with encoder)
-RPM command → PI controller → PWM → motor
-                   ↑
-               encoder feedback
+To enable encoders on Motors 3-9, edit `firmware/MotorControlNine/MotorControlNine.ino`:
 
-🔧 Hardware Setup
-Motor
+1. Add encoder pins to `encA[]` and `encB[]` arrays (lines 80-90)
+2. Create new ISR functions (see `isrEncA1()` and `isrEncA2()` as examples, lines 154-163)
+3. Attach interrupts in `attachEncoders()` (lines 169-182)
 
-Pololu 10:1 Micro Metal Gearmotor (HPCB 12V)
+All Teensy 4.1 digital pins support interrupts, so you can use any available pins (avoid 18/19 for I2C).
 
-Encoder: 12 CPR quadrature
+---
 
-Gear ratio: 9.96:1
+## Software Architecture
 
-Effective counts/output-rev ≈ 240
+### Components
 
-Power
+```
+┌─────────────┐         ┌──────────────┐         ┌─────────────┐
+│  Browser UI │ ◄─HTTP─►│  C++ Backend │ ◄─Serial─►│ Teensy 4.1  │
+│  (HTML/JS)  │         │   (REST API) │         │  (Firmware) │
+└─────────────┘         └──────────────┘         └─────────────┘
+                                                         │
+                                                    I2C  │
+                                                         ▼
+                                                  ┌──────────┐
+                                                  │ PCA9685  │
+                                                  │  Boards  │
+                                                  └──────────┘
+                                                         │
+                                                     PWM │
+                                                         ▼
+                                                  ┌──────────┐
+                                                  │  Motors  │
+                                                  │  + Enc   │
+                                                  └──────────┘
+```
 
-Motors powered from external 12V supply
+### Firmware (Arduino/Teensy)
+- **File**: `firmware/MotorControlNine/MotorControlNine.ino`
+- **Features**:
+  - Quadrature encoder decoding (RISING edge interrupts)
+  - RPM calculation from encoder counts
+  - PI control loop (50ms update rate)
+  - Serial command protocol
+  - Multi-motor state management
 
-Arduino must NOT power motors
+### Backend (C++)
+- **Files**: `backend/MotorController.{cpp,hpp}`, `backend/HttpServer.{cpp,hpp}`
+- **Features**:
+  - Serial bridge to Teensy
+  - REST API endpoints
+  - Static file server for web UI
+  - Real-time telemetry collection
 
-All grounds must be common
+### Frontend (HTML/JS)
+- **File**: `public/index.html`
+- **Features**:
+  - Per-motor RPM input sliders
+  - Start / Set / Stop controls
+  - Live telemetry display (200ms polling)
+  - Real-time encoder feedback visualization
 
-Encoder Wiring (Motors 1 & 2)
-Signal	Motor 1	Motor 2
-Encoder A	D2	D3
-Encoder B	D4	D5
-VCC	5V	5V
-GND	GND	GND
-📦 Software Components
-Arduino Firmware
+---
 
-Encoder pulse counting (interrupt-based)
+## API Reference
 
-RPM computation
-
-PI control loop (50 ms)
-
-Serial protocol for commands + telemetry
-
-Backend (C++)
-
-Serial bridge to Arduino
-
-Motor abstraction using RPM
-
-REST API + static file server
-
-Frontend (HTML/JS)
-
-Per-motor RPM input
-
-Start / Set / Stop buttons
-
-Live telemetry polling (200 ms)
-
-🖥️ API Endpoints
-Status
+### Status Check
+```http
 GET /api/status
+```
+Returns: `STATUS OK` if Teensy is connected
 
-Motor Control
+### Motor Control
+
+**Start Motor**
+```http
 GET /api/motor/{id}/start?rpm=1000&dir=CW
+```
+- `id`: Motor ID (1-9)
+- `rpm`: Target RPM (0-1500)
+- `dir`: Direction (`CW` or `CCW`)
+
+**Update Running Motor**
+```http
 GET /api/motor/{id}/set?rpm=1200&dir=CCW
+```
+
+**Stop Motor**
+```http
 GET /api/motor/{id}/stop
+```
 
-Telemetry
+### Telemetry
+
+**Single Motor**
+```http
 GET /api/motor/{id}/read
+```
+Returns CSV: `M,id,rpm,count,pwm,tgt,dir,en`
+
+**All Motors**
+```http
 GET /api/encoders
+```
+Returns 9 lines of CSV (one per motor)
 
-🧪 Example Serial Commands (Arduino side)
-M1:START:1000:CW
-M1:SET:1200:CCW
-M1:STOP
-M1:READ
-ENC
+---
 
-🛠️ Build & Run
-Install dependencies
-sudo apt update && sudo apt install -y g++ cmake make git socat arduino
+## Build & Run
 
-Clone
+### Prerequisites
+
+```bash
+sudo apt update && sudo apt install -y g++ cmake make git
+```
+
+For Teensy programming, install [Teensyduino](https://www.pjrc.com/teensy/td_download.html) or use Arduino IDE with Teensy support.
+
+### Clone Repository
+
+```bash
 git clone https://github.com/Ashrith5321/sam-lab-ui.git
 cd sam-lab-ui
+```
 
-Build
+### Build Backend
+
+```bash
 rm -rf build
 cmake -S . -B build
-cmake --build build -j8
+cmake --build build -j$(nproc)
+```
 
-Run
-SERIAL_PORT=/dev/serial/by-id/usb-Arduino_LLC_Arduino_Leonardo-if00 \
+### Flash Teensy
+
+1. Open `firmware/MotorControlNine/MotorControlNine.ino` in Arduino IDE
+2. Select **Tools → Board → Teensy 4.1**
+3. Select **Tools → USB Type → Serial**
+4. Upload to Teensy
+
+### Run Backend
+
+```bash
+SERIAL_PORT=/dev/ttyACM0 \
 PORT=5173 \
 STATIC_DIR=./public \
 ./build/one_motor
+```
 
+**Find your serial port**:
+```bash
+ls /dev/ttyACM* /dev/ttyUSB*
+# or use by-id for stability:
+ls /dev/serial/by-id/
+```
 
-Open:
+### Access Web UI
 
-http://127.0.0.1:5173
+Open browser to: **http://127.0.0.1:5173**
 
-🧪 Test Without Hardware (Optional)
+---
+
+## Serial Protocol (Teensy Commands)
+
+All commands are newline-terminated ASCII strings.
+
+### Commands
+
+| Command                  | Description                      | Response      |
+|--------------------------|----------------------------------|---------------|
+| `STATUS`                 | Check if firmware is ready       | `STATUS OK`   |
+| `ENC`                    | Read all 9 motors (CSV)          | 9 lines       |
+| `M{id}:START:{rpm}:{dir}`| Start motor with RPM + direction | `OK`          |
+| `M{id}:SET:{rpm}:{dir}`  | Update running motor             | `OK`          |
+| `M{id}:STOP`             | Stop motor                       | `OK`          |
+| `M{id}:READ`             | Read single motor telemetry      | CSV line      |
+
+### Examples
+
+```
+M1:START:1000:CW       → Start Motor 1 at 1000 RPM clockwise
+M2:SET:1200:CCW        → Change Motor 2 to 1200 RPM counter-clockwise
+M1:STOP                → Stop Motor 1
+M3:READ                → Read Motor 3 status
+ENC                    → Read all motors
+```
+
+### CSV Telemetry Format
+
+```
+M,{id},{measured_rpm},{encoder_count},{pwm_duty},{target_rpm},{dir},{enabled}
+```
+
+Example:
+```
+M,1,985,12450,2048,1000,1,1
+```
+- Motor 1, measured 985 RPM, 12450 encoder counts, PWM=2048, target=1000, CW, enabled
+
+---
+
+## Testing Without Hardware
+
+Use `socat` to create virtual serial ports for testing:
+
+```bash
 socat -d -d pty,raw,echo=0 pty,raw,echo=0
+```
 
+This creates two linked pseudo-terminals (e.g., `/dev/pts/5` ↔ `/dev/pts/6`).
 
-Terminal 1:
+**Terminal 1** (Backend):
+```bash
+SERIAL_PORT=/dev/pts/5 PORT=5173 STATIC_DIR=./public ./build/one_motor
+```
 
-SERIAL_PORT=/dev/pts/5 PORT=5173 ./build/one_motor
-
-
-Terminal 2:
-
+**Terminal 2** (Monitor):
+```bash
 cat /dev/pts/6
+```
 
-📈 Scaling Options (Future Work)
+Now you can test the backend without a physical Teensy.
 
-If you need encoder feedback on all motors:
+---
 
-Recommended
+## Control Tuning
 
-Teensy 4.1 (hardware quadrature decoding)
+### PI Controller Gains
 
-ESP32 (PCNT units)
+Default gains (in `MotorControlNine.ino`, lines 186-188):
+```cpp
+kP[i] = 0.9f;   // Proportional gain
+kI[i] = 0.15f;  // Integral gain
+```
 
-Alternatives
+**Tuning tips**:
+- Increase `kP` for faster response (may cause oscillation)
+- Increase `kI` to eliminate steady-state error (may cause overshoot)
+- Test with step changes in target RPM
 
-External encoder counters (SPI/I²C)
+### Encoder Configuration
 
-Magnetic encoders
+Current setup uses **1x decoding** (RISING edge only):
+- Lower ISR load and noise sensitivity
+- Adequate resolution for 12 CPR encoders
 
-Backend + UI do not need to change for these upgrades.
+For higher resolution, switch to **4x decoding** (both edges, both channels).
 
-🧑‍🔬 Intended Use
+---
 
-This project is intended for:
+## Troubleshooting
 
-Robotics research & labs
+### Serial Connection Issues
 
-Motor characterization
+**Symptom**: No `READY` message on connection
 
-Control systems experimentation
+**Solutions**:
+- Teensy doesn't auto-reset on serial open (this is normal)
+- Backend automatically sends `STATUS` command to verify connection
+- Check USB cable and port permissions: `sudo chmod 666 /dev/ttyACM0`
 
-Educational platforms
+### Motor Not Responding
+
+**Check**:
+1. PCA9685 boards powered (5V LED should be on)
+2. I2C addresses correct (0x40, 0x41) - use `i2cdetect -y 1` on Raspberry Pi
+3. Motor driver board powered externally (12V)
+4. Common ground between all components
+5. Motor cables not reversed
+
+### Encoder Not Reading
+
+**Check**:
+1. Encoder VCC connected to 5V
+2. Common ground with Teensy
+3. Encoder pins defined in `encA[]` and `encB[]` arrays
+4. ISR functions created and attached
+5. Try hand-spinning motor - should see counts change with `ENC` command
+
+### RPM Oscillation
+
+**Symptoms**: Motor speed oscillates around target
+
+**Solutions**:
+- Reduce `kP` gain
+- Reduce `kI` gain
+- Increase control loop period `CTRL_DT_MS` (line 76)
+- Check for mechanical binding or excessive load
+
+---
+
+## Project Structure
+
+```
+.
+├── backend/
+│   ├── main.cpp              # Entry point
+│   ├── HttpServer.{cpp,hpp}  # HTTP server + routing
+│   ├── MotorController.{cpp,hpp}  # Serial communication
+│   └── SerialPort.{cpp,hpp}  # Low-level serial I/O
+├── firmware/
+│   └── MotorControlNine/
+│       └── MotorControlNine.ino  # Teensy firmware
+├── public/
+│   └── index.html            # Web UI
+├── CMakeLists.txt            # Build configuration
+└── README.md                 # This file
+```
+
+---
+
+## Future Enhancements
+
+### Planned Features
+- [ ] WebSocket support for lower-latency telemetry
+- [ ] Trajectory planning (acceleration/deceleration ramps)
+- [ ] Auto-tuning for PI gains
+- [ ] Data logging to CSV/JSON
+- [ ] Multi-motor synchronization
+
+### Hardware Scalability
+
+**To enable encoders on all 9 motors**:
+- Teensy 4.1 supports this natively (all pins interrupt-capable)
+- Simply add encoder pins to firmware configuration
+- No backend or UI changes required
+
+**Alternative microcontrollers**:
+- ESP32 (PCNT hardware encoder units)
+- STM32 with hardware quadrature decoders
+- External encoder counters (LS7366R via SPI)
+
+---
+
+## Use Cases
+
+This system is designed for:
+- Robotics research and experimentation
+- Motor characterization and testing
+- Control systems education
+- Multi-actuator coordination
+- Precision motion control
+
+---
+
+## License
+
+MIT License - see repository for details.
+
+---
+
+## Contributing
+
+Issues and pull requests welcome! Please maintain:
+- Clean separation between firmware/backend/frontend
+- Backward compatibility with existing hardware
+- Clear documentation of hardware requirements
+
+---
+
+## Credits
+
+Built for robotics lab automation and educational use.
+
+**Hardware**: Pololu motors, Adafruit PCA9685, PJRC Teensy 4.1
+**Libraries**: Adafruit_PWMServoDriver, Wire (I2C)

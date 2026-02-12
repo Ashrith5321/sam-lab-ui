@@ -1,21 +1,20 @@
 // MotorControlNine.ino
-// 9-motor PWM + CLOSED-LOOP RPM control (best-effort) for Arduino Leonardo.
+// 9-motor PWM + CLOSED-LOOP RPM control (best-effort) for Teensy 4.1
 //
-// CRITICAL LEONARDO NOTE (WHY YOUR I2C DIED)
-// ----------------------------------------
-// On Arduino Leonardo, I2C uses the SAME electrical nets as:
-//   - SDA = D2
-//   - SCL = D3
-// (even if you plug into the dedicated SDA/SCL header)
-//
-// Therefore you MUST NOT use D2 or D3 for encoder pins if you are using PCA9685 on I2C.
+// TEENSY 4.1 ADVANTAGES:
+// ----------------------
+// - ALL digital pins support interrupts (unlike Arduino Leonardo)
+// - Much faster processor: 600 MHz ARM Cortex-M7
+// - Dedicated I2C pins: SDA=18, SCL=19 (no pin conflicts)
+// - More robust USB serial
 //
 // This firmware:
 //  - drives up to 9 motors via two PCA9685 boards (0x40 and 0x41)
 //  - supports encoder closed-loop on a subset (default: motors 1 and 2)
-//  - uses encoder A on interrupt-capable pins that do NOT conflict with I2C
-//      M1: A=D7, B=D4
-//      M2: A=D0, B=D5   (D0 is ok; USB Serial is separate. Avoid Serial1 usage.)
+//  - uses encoder A on interrupt-capable pins (ALL Teensy 4.1 pins support interrupts)
+//      M1: A=2, B=3
+//      M2: A=4, B=5
+//  - can easily expand to more encoders (just add pins to encA/encB arrays and ISRs)
 //
 // Serial robustness + UI fixes:
 //  - Uses RISING interrupts (less ISR load/noise sensitivity)
@@ -30,11 +29,12 @@
 //   M3:STOP
 //   M3:READ             -> prints 1 line (M,...)
 //
-// Hardware reminders:
-//  - PCA9685 VCC->5V, GND->GND, SDA->SDA, SCL->SCL
+// Hardware reminders (Teensy 4.1):
+//  - PCA9685 VCC->5V, GND->GND, SDA->pin 18, SCL->pin 19
 //  - Motor driver board MUST be powered separately (PCA9685 cannot drive DC motors directly)
-//  - Encoder VCC->5V, GND->GND (common ground with Arduino + motor driver)
+//  - Encoder VCC->3.3V or 5V (5V tolerant), GND->GND (common ground with Teensy + motor driver)
 //  - Add 0.1uF cap across each brushed DC motor terminals to reduce EMI
+//  - Teensy 4.1 I/O is 3.3V logic (but 5V tolerant on most pins)
 
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
@@ -75,17 +75,17 @@ static const float COUNTS_PER_OUTPUT_REV = COUNTS_PER_MOTOR_REV * GEAR_RATIO;
 static const int MAX_RPM    = 1500;  // output shaft rpm cap
 static const int CTRL_DT_MS = 50;    // control loop period
 
-// Encoder pins (IMPORTANT: avoid D2/D3 because they are SDA/SCL on Leonardo)
-// Set to 255 for "not present".
+// Encoder pins (Teensy 4.1: ALL pins support interrupts!)
+// Avoid pins 18 (SDA) and 19 (SCL) for I2C. Set to 255 for "not present".
 uint8_t encA[10] = {255,
-  7,   // M1 A -> D7  (interrupt-capable, does not conflict with I2C)
-  0,   // M2 A -> D0  (interrupt-capable; avoid Serial1 usage)
+  2,   // M1 A -> pin 2  (all Teensy 4.1 pins are interrupt-capable)
+  4,   // M2 A -> pin 4
   255,255,255,255,255,255,255
 };
 
 uint8_t encB[10] = {255,
-  4,   // M1 B -> D4
-  5,   // M2 B -> D5
+  3,   // M1 B -> pin 3
+  5,   // M2 B -> pin 5
   255,255,255,255,255,255,255
 };
 
@@ -301,7 +301,7 @@ void setup() {
 
   Serial.begin(115200);
   unsigned long t0 = millis();
-  while (!Serial && millis() - t0 < 2000) { /* wait */ }
+  while (!Serial && millis() - t0 < 2000) { /* wait for USB serial (Teensy USB is robust) */ }
 
   attachEncoders();
   setupControllerGains();
