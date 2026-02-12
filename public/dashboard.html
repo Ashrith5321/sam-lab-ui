@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Integrated Control Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #7c3aed;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning: #ea580c;
+      --accent: #0891b2;
+      --bg: #0f172a;
+      --bg-alt: #1e293b;
+      --surface: #1e293b;
+      --surface-light: #334155;
+      --text: #f1f5f9;
+      --text-dim: #94a3b8;
+      --border: #475569;
+      --glow-primary: rgba(37, 99, 235, 0.3);
+      --glow-success: rgba(22, 163, 74, 0.3);
+      --glow-danger: rgba(220, 38, 38, 0.3);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, var(--bg) 0%, var(--bg-alt) 100%);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Subtle background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        radial-gradient(circle at 20% 80%, rgba(37, 99, 235, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(124, 58, 237, 0.05) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 100%;
+      padding: 10px;
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 12px;
+      height: 100vh;
+    }
+
+    /* LEFT SIDE - Motor Controls */
+    .motor-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      animation: fadeInDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+      letter-spacing: 0px;
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      flex-wrap: wrap;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s ease-in-out infinite;
+      box-shadow: 0 0 12px var(--glow-success);
+    }
+
+    .status-indicator.offline {
+      background: var(--danger);
+      box-shadow: 0 0 12px var(--glow-danger);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.1); }
+    }
+
+    /* Master Control Panel */
+    .master-control {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      animation: fadeInDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+    }
+
+    .master-control h2 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .master-controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .master-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .master-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .master-rpm-input {
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      transition: all 0.2s ease;
+      font-family: 'SF Mono', monospace;
+    }
+
+    .master-rpm-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--glow-primary);
+    }
+
+    .master-direction-group {
+      display: flex;
+      gap: 6px;
+      background: var(--surface-light);
+      padding: 3px;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+    }
+
+    .master-dir-btn {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: transparent;
+      color: var(--text-dim);
+    }
+
+    .master-dir-btn.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 2px 8px var(--glow-primary);
+    }
+
+    .btn-start-all {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: var(--success);
+      color: white;
+      box-shadow: 0 2px 8px var(--glow-success);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-start-all:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px var(--glow-success);
+    }
+
+    .btn-start-all:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    /* Motor Grid - Perfect Squares */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .motor-card {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s ease;
+      animation: fadeInUp 0.6s ease both;
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .motor-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--primary);
+    }
+
+    .motor-card.running {
+      border-color: var(--success);
+      box-shadow: 0 0 0 2px var(--success);
+    }
+
+    .motor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .motor-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .motor-status {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .motor-status.running {
+      background: rgba(22, 163, 74, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(22, 163, 74, 0.3);
+    }
+
+    .motor-status.stopped {
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--text-dim);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    .motor-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .controls-section {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      flex: 1;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .control-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .rpm-input-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .rpm-input {
+      flex: 1;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 6px 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      transition: all 0.2s ease;
+      font-family: 'SF Mono', monospace;
+    }
+
+    .rpm-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: var(--surface);
+    }
+
+    .rpm-unit {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-dim);
+    }
+
+    .direction-group {
+      display: flex;
+      gap: 4px;
+      background: var(--surface-light);
+      padding: 2px;
+      border-radius: 5px;
+    }
+
+    .direction-btn {
+      flex: 1;
+      padding: 6px;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: transparent;
+      color: var(--text-dim);
+    }
+
+    .direction-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .action-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+    }
+
+    .btn {
+      padding: 8px 6px;
+      border: none;
+      border-radius: 5px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.2px;
+    }
+
+    .btn-start {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-set {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-stop {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+    }
+
+    .btn:active {
+      transform: scale(0.95);
+    }
+
+    .telemetry-section {
+      margin-top: auto;
+      padding-top: 7px;
+      border-top: 1px solid var(--border);
+    }
+
+    .telemetry-title {
+      font-size: 0.6rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5px;
+    }
+
+    .telemetry-item {
+      background: var(--surface-light);
+      padding: 5px 6px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+    }
+
+    .telemetry-label {
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      margin-bottom: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.2px;
+    }
+
+    .telemetry-value {
+      font-size: 0.85rem;
+      font-weight: 700;
+      font-family: 'SF Mono', monospace;
+      color: var(--text);
+    }
+
+    .telemetry-value.highlight {
+      color: var(--primary);
+    }
+
+    /* RIGHT SIDE - Microbot Tracking */
+    .tracking-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+    }
+
+    .tracking-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+      animation: fadeInRight 0.8s ease both;
+    }
+
+    .tracking-panel h2 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .microbot-count {
+      background: var(--primary);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      box-shadow: 0 2px 8px var(--glow-primary);
+    }
+
+    /* Camera Feeds */
+    .camera-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .camera-view {
+      position: relative;
+      background: var(--surface-light);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid var(--border);
+      aspect-ratio: 4/3;
+    }
+
+    .camera-view img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .camera-label {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(10, 14, 39, 0.8);
+      color: var(--text);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border: 1px solid var(--border);
+    }
+
+    .camera-offline {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-dim);
+      font-size: 0.9rem;
+    }
+
+    /* Occupancy Grids */
+    .grid-display {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
+      gap: 3px;
+      margin-top: 10px;
+    }
+
+    .grid-cell {
+      aspect-ratio: 1;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: 'SF Mono', monospace;
+      transition: all 0.2s ease;
+    }
+
+    .grid-cell.occupied {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 1px 4px var(--glow-primary);
+    }
+
+    /* Microbot List */
+    .microbot-list {
+      max-height: 200px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .microbot-item {
+      background: var(--surface-light);
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 8px;
+      font-size: 0.75rem;
+      transition: all 0.2s ease;
+    }
+
+    .microbot-item:hover {
+      border-color: var(--primary);
+      transform: translateX(4px);
+    }
+
+    .microbot-id {
+      background: var(--primary);
+      color: white;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-weight: 700;
+      text-align: center;
+      min-width: 45px;
+    }
+
+    .microbot-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .microbot-info span {
+      color: var(--text-dim);
+      font-family: 'SF Mono', monospace;
+    }
+
+    /* Animations */
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInRight {
+      from {
+        opacity: 0;
+        transform: translateX(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    /* Stagger animations */
+    .motor-card:nth-child(1) { animation-delay: 0.1s; }
+    .motor-card:nth-child(2) { animation-delay: 0.15s; }
+    .motor-card:nth-child(3) { animation-delay: 0.2s; }
+    .motor-card:nth-child(4) { animation-delay: 0.25s; }
+    .motor-card:nth-child(5) { animation-delay: 0.3s; }
+    .motor-card:nth-child(6) { animation-delay: 0.35s; }
+    .motor-card:nth-child(7) { animation-delay: 0.4s; }
+    .motor-card:nth-child(8) { animation-delay: 0.45s; }
+    .motor-card:nth-child(9) { animation-delay: 0.5s; }
+
+    /* Toast notifications */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface);
+      border: 1px solid var(--success);
+      border-radius: 8px;
+      padding: 12px 18px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      color: var(--text);
+      font-weight: 500;
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
+      font-size: 0.9rem;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--surface);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--primary);
+    }
+
+    /* Responsive */
+    @media (min-width: 1400px) {
+      .container {
+        grid-template-columns: 1fr 420px;
+      }
+    }
+
+    @media (max-width: 1200px) {
+      .container {
+        grid-template-columns: 1fr 360px;
+      }
+
+      .grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 1000px) {
+      .container {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+
+      .tracking-section {
+        order: -1;
+      }
+
+      .grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .camera-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .master-controls-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .header h1 {
+        font-size: 1.2rem;
+      }
+
+      .camera-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- LEFT SIDE: Motor Controls -->
+    <div class="motor-section">
+      <div class="header">
+        <h1>INTEGRATED CONTROL DASHBOARD</h1>
+        <div class="status-bar">
+          <div class="status-item">
+            <div class="status-indicator" id="motor-indicator"></div>
+            <span id="motor-status">Motors: --</span>
+          </div>
+          <div class="status-item">
+            <div class="status-indicator" id="tracking-indicator"></div>
+            <span id="tracking-status">Tracking: --</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="master-control">
+        <h2>MASTER CONTROLS</h2>
+        <div class="master-controls-grid">
+          <div class="master-input-group">
+            <label class="master-label">Master RPM</label>
+            <input type="number" class="master-rpm-input" id="master-rpm"
+                   value="500" min="0" max="1500" step="10">
+          </div>
+          <div class="master-input-group">
+            <label class="master-label">Master Direction</label>
+            <div class="master-direction-group">
+              <button class="master-dir-btn active" data-dir="CW" id="master-dir-cw">↻ CW</button>
+              <button class="master-dir-btn" data-dir="CCW" id="master-dir-ccw">↺ CCW</button>
+            </div>
+          </div>
+          <div class="master-input-group">
+            <label class="master-label">Execute</label>
+            <button class="btn-start-all" id="start-all-btn">▶ START ALL MOTORS</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid" id="motorGrid"></div>
+    </div>
+
+    <!-- RIGHT SIDE: Microbot Tracking -->
+    <div class="tracking-section">
+      <!-- Microbot Count -->
+      <div class="tracking-panel">
+        <h2>
+          MICROBOTS DETECTED:
+          <span class="microbot-count" id="microbot-count">0</span>
+        </h2>
+      </div>
+
+      <!-- Camera Feeds -->
+      <div class="tracking-panel">
+        <h2>CAMERA FEEDS</h2>
+        <div class="camera-grid">
+          <div class="camera-view">
+            <div class="camera-label">Debug View</div>
+            <img id="debug-feed" src="" alt="Debug Feed" style="display:none;">
+            <div class="camera-offline" id="debug-offline">Waiting for feed...</div>
+          </div>
+          <div class="camera-view">
+            <div class="camera-label">Binary</div>
+            <img id="binary-feed" src="" alt="Binary Feed" style="display:none;">
+            <div class="camera-offline" id="binary-offline">Waiting for feed...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Occupancy Grids -->
+      <div class="tracking-panel">
+        <h2>COARSE GRID (3x3)</h2>
+        <div class="grid-display" id="coarse-grid"></div>
+      </div>
+
+      <div class="tracking-panel">
+        <h2>FINE GRID (9x9)</h2>
+        <div class="grid-display" id="fine-grid"></div>
+      </div>
+
+      <!-- Microbot List -->
+      <div class="tracking-panel">
+        <h2>DETECTED MICROBOTS</h2>
+        <div class="microbot-list" id="microbot-list">
+          <div style="color: var(--text-dim); text-align: center; padding: 20px;">
+            No microbots detected
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== MOTOR CONTROL API ====================
+    async function api(path) {
+      try {
+        const r = await fetch(path);
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return await r.json();
+      } catch (e) {
+        console.error('API Error:', e);
+        throw e;
+      }
+    }
+
+    function showToast(message, duration = 3000) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), duration);
+    }
+
+    // ==================== MOTOR STATUS ====================
+    async function checkMotorStatus() {
+      try {
+        const j = await api('/api/status');
+        document.getElementById('motor-status').textContent =
+          j.status === 'STATUS OK' ? 'Motors: Ready' : 'Motors: ' + (j.status || 'Connected');
+        document.getElementById('motor-indicator').classList.remove('offline');
+      } catch (e) {
+        document.getElementById('motor-status').textContent = 'Motors: Offline';
+        document.getElementById('motor-indicator').classList.add('offline');
+      }
+    }
+
+    // ==================== MICROBOT TRACKING ====================
+    async function checkTrackingStatus() {
+      try {
+        const r = await fetch('http://localhost:5174/api/microbot/status');
+        const j = await r.json();
+        if (j.connected) {
+          document.getElementById('tracking-status').textContent = `Tracking: ${j.microbot_count} bots`;
+          document.getElementById('tracking-indicator').classList.remove('offline');
+        } else {
+          throw new Error('Not connected');
+        }
+      } catch (e) {
+        document.getElementById('tracking-status').textContent = 'Tracking: Offline';
+        document.getElementById('tracking-indicator').classList.add('offline');
+      }
+    }
+
+    // Update microbot data
+    async function updateMicrobotData() {
+      try {
+        const r = await fetch('http://localhost:5174/api/microbot/data');
+        const data = await r.json();
+
+        // Update count
+        document.getElementById('microbot-count').textContent = data.count;
+
+        // Update coarse grid
+        updateGrid('coarse-grid', data.coarse_grid, 3);
+
+        // Update fine grid
+        updateGrid('fine-grid', data.fine_grid, 9);
+
+        // Update microbot list
+        updateMicrobotList(data.positions);
+
+      } catch (e) {
+        console.error('Error fetching microbot data:', e);
+      }
+    }
+
+    function updateGrid(elementId, gridData, size) {
+      const container = document.getElementById(elementId);
+      if (!gridData || gridData.length === 0) return;
+
+      container.innerHTML = '';
+      container.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+
+      for (let row = 0; row < size; row++) {
+        for (let col = 0; col < size; col++) {
+          const count = gridData[row] && gridData[row][col] ? gridData[row][col] : 0;
+          const cell = document.createElement('div');
+          cell.className = 'grid-cell' + (count > 0 ? ' occupied' : '');
+          cell.textContent = count > 0 ? count : '';
+          container.appendChild(cell);
+        }
+      }
+    }
+
+    function updateMicrobotList(positions) {
+      const container = document.getElementById('microbot-list');
+
+      if (!positions || positions.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-dim); text-align: center; padding: 20px;">No microbots detected</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+      positions.slice(0, 15).forEach(bot => {
+        const item = document.createElement('div');
+        item.className = 'microbot-item';
+        item.innerHTML = `
+          <div class="microbot-id">ID ${bot.id}</div>
+          <div class="microbot-info">
+            <span>Pos: (${bot.x.toFixed(1)}, ${bot.y.toFixed(1)})</span>
+            <span>Grid: C(${bot.coarse_row},${bot.coarse_col}) F(${bot.fine_row},${bot.fine_col})</span>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+
+      if (positions.length > 15) {
+        const more = document.createElement('div');
+        more.style.cssText = 'color: var(--text-dim); text-align: center; padding: 10px; font-size: 0.75rem;';
+        more.textContent = `+ ${positions.length - 15} more`;
+        container.appendChild(more);
+      }
+    }
+
+    // Setup camera feeds
+    function setupCameraFeeds() {
+      const debugFeed = document.getElementById('debug-feed');
+      const binaryFeed = document.getElementById('binary-feed');
+      const debugOffline = document.getElementById('debug-offline');
+      const binaryOffline = document.getElementById('binary-offline');
+
+      debugFeed.src = 'http://localhost:5174/api/microbot/stream/debug';
+      debugFeed.onerror = () => {
+        debugFeed.style.display = 'none';
+        debugOffline.style.display = 'flex';
+      };
+      debugFeed.onload = () => {
+        debugFeed.style.display = 'block';
+        debugOffline.style.display = 'none';
+      };
+
+      binaryFeed.src = 'http://localhost:5174/api/microbot/stream/binary';
+      binaryFeed.onerror = () => {
+        binaryFeed.style.display = 'none';
+        binaryOffline.style.display = 'flex';
+      };
+      binaryFeed.onload = () => {
+        binaryFeed.style.display = 'block';
+        binaryOffline.style.display = 'none';
+      };
+    }
+
+    // ==================== MOTOR CONTROL FUNCTIONS ====================
+    function parseTelemetry(line) {
+      if (!line || !line.startsWith('M,')) return null;
+      const parts = line.split(',');
+      if (parts.length < 8) return null;
+
+      return {
+        id: parseInt(parts[1]),
+        rpm: parseInt(parts[2]),
+        count: parseInt(parts[3]),
+        pwm: parseInt(parts[4]),
+        target: parseInt(parts[5]),
+        dir: parts[6] === '1' ? 'CW' : 'CCW',
+        enabled: parts[7] === '1'
+      };
+    }
+
+    function createMotorCard(id) {
+      const card = document.createElement('div');
+      card.className = 'motor-card';
+      card.innerHTML = `
+        <div class="motor-header">
+          <div class="motor-title">M${id}</div>
+          <div class="motor-status stopped" id="status-${id}">
+            <div class="motor-status-dot"></div>
+            <span>OFF</span>
+          </div>
+        </div>
+        <div class="controls-section">
+          <div class="control-group">
+            <label class="control-label">Target RPM</label>
+            <div class="rpm-input-group">
+              <input type="number" class="rpm-input" id="rpm-${id}"
+                     value="0" min="0" max="1500" step="10">
+              <span class="rpm-unit">RPM</span>
+            </div>
+          </div>
+          <div class="control-group">
+            <label class="control-label">Direction</label>
+            <div class="direction-group">
+              <button class="direction-btn active" data-dir="CW" id="dir-cw-${id}">↻ CW</button>
+              <button class="direction-btn" data-dir="CCW" id="dir-ccw-${id}">↺ CCW</button>
+            </div>
+          </div>
+          <div class="action-buttons">
+            <button class="btn btn-start" id="start-${id}">▶</button>
+            <button class="btn btn-set" id="set-${id}">⚡</button>
+            <button class="btn btn-stop" id="stop-${id}">⏹</button>
+          </div>
+        </div>
+        <div class="telemetry-section">
+          <div class="telemetry-title">TELEMETRY</div>
+          <div class="telemetry-grid">
+            <div class="telemetry-item">
+              <div class="telemetry-label">Measured</div>
+              <div class="telemetry-value highlight" id="meas-${id}">--</div>
+            </div>
+            <div class="telemetry-item">
+              <div class="telemetry-label">PWM</div>
+              <div class="telemetry-value" id="pwm-${id}">--</div>
+            </div>
+            <div class="telemetry-item">
+              <div class="telemetry-label">Encoder</div>
+              <div class="telemetry-value" id="count-${id}">--</div>
+            </div>
+            <div class="telemetry-item">
+              <div class="telemetry-label">Target</div>
+              <div class="telemetry-value" id="target-${id}">--</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const dirCW = card.querySelector(`#dir-cw-${id}`);
+      const dirCCW = card.querySelector(`#dir-ccw-${id}`);
+      dirCW.onclick = () => {
+        dirCW.classList.add('active');
+        dirCCW.classList.remove('active');
+      };
+      dirCCW.onclick = () => {
+        dirCCW.classList.add('active');
+        dirCW.classList.remove('active');
+      };
+
+      function getDir() {
+        return card.querySelector('.direction-btn.active').dataset.dir;
+      }
+
+      const rpmInput = card.querySelector(`#rpm-${id}`);
+      rpmInput.addEventListener('input', () => {
+        let v = parseInt(rpmInput.value) || 0;
+        if (v < 0) v = 0;
+        if (v > 1500) v = 1500;
+        rpmInput.value = v;
+      });
+
+      card.querySelector(`#start-${id}`).onclick = async () => {
+        const rpm = parseInt(rpmInput.value) || 0;
+        const dir = getDir();
+        try {
+          await api(`/api/motor/${id}/start?rpm=${rpm}&dir=${dir}`);
+          showToast(`Motor ${id} started`);
+        } catch (e) {
+          showToast(`Failed to start Motor ${id}`);
+        }
+      };
+
+      card.querySelector(`#set-${id}`).onclick = async () => {
+        const rpm = parseInt(rpmInput.value) || 0;
+        const dir = getDir();
+        try {
+          await api(`/api/motor/${id}/set?rpm=${rpm}&dir=${dir}`);
+          showToast(`Motor ${id} set`);
+        } catch (e) {
+          showToast(`Failed to set Motor ${id}`);
+        }
+      };
+
+      card.querySelector(`#stop-${id}`).onclick = async () => {
+        try {
+          await api(`/api/motor/${id}/stop`);
+          showToast(`Motor ${id} stopped`);
+        } catch (e) {
+          showToast(`Failed to stop Motor ${id}`);
+        }
+      };
+
+      async function updateTelemetry() {
+        try {
+          const j = await api(`/api/motor/${id}/read`);
+          const data = parseTelemetry(j.line);
+
+          if (data) {
+            const statusEl = card.querySelector(`#status-${id}`);
+            if (data.enabled) {
+              statusEl.className = 'motor-status running';
+              statusEl.innerHTML = '<div class="motor-status-dot"></div><span>ON</span>';
+              card.classList.add('running');
+            } else {
+              statusEl.className = 'motor-status stopped';
+              statusEl.innerHTML = '<div class="motor-status-dot"></div><span>OFF</span>';
+              card.classList.remove('running');
+            }
+
+            card.querySelector(`#meas-${id}`).textContent = data.rpm;
+            card.querySelector(`#pwm-${id}`).textContent = data.pwm;
+            card.querySelector(`#count-${id}`).textContent = data.count;
+            card.querySelector(`#target-${id}`).textContent = `${data.target}/${data.dir}`;
+          }
+        } catch (e) {
+          // Silently handle errors
+        }
+      }
+
+      updateTelemetry();
+      setInterval(updateTelemetry, 200);
+
+      return card;
+    }
+
+    function setupMasterControls() {
+      const masterRpm = document.getElementById('master-rpm');
+      const masterDirCW = document.getElementById('master-dir-cw');
+      const masterDirCCW = document.getElementById('master-dir-ccw');
+      const startAllBtn = document.getElementById('start-all-btn');
+
+      masterDirCW.onclick = () => {
+        masterDirCW.classList.add('active');
+        masterDirCCW.classList.remove('active');
+      };
+
+      masterDirCCW.onclick = () => {
+        masterDirCCW.classList.add('active');
+        masterDirCW.classList.remove('active');
+      };
+
+      masterRpm.addEventListener('input', () => {
+        let v = parseInt(masterRpm.value) || 0;
+        if (v < 0) v = 0;
+        if (v > 1500) v = 1500;
+        masterRpm.value = v;
+      });
+
+      startAllBtn.onclick = async () => {
+        const rpm = parseInt(masterRpm.value) || 0;
+        const dir = document.querySelector('.master-dir-btn.active').dataset.dir;
+
+        startAllBtn.textContent = '⚙️ STARTING...';
+        startAllBtn.disabled = true;
+
+        try {
+          const promises = [];
+          for (let i = 1; i <= 9; i++) {
+            promises.push(api(`/api/motor/${i}/start?rpm=${rpm}&dir=${dir}`));
+          }
+
+          await Promise.all(promises);
+          showToast(`✓ All motors started at ${rpm} RPM ${dir}`, 4000);
+        } catch (e) {
+          showToast('⚠ Failed to start some motors', 4000);
+        } finally {
+          startAllBtn.textContent = '▶ START ALL MOTORS';
+          startAllBtn.disabled = false;
+        }
+      };
+    }
+
+    // ==================== INITIALIZATION ====================
+    function init() {
+      // Setup motors
+      const grid = document.getElementById('motorGrid');
+      for (let i = 1; i <= 9; i++) {
+        grid.appendChild(createMotorCard(i));
+      }
+      setupMasterControls();
+
+      // Setup tracking
+      setupCameraFeeds();
+
+      // Start status checks
+      checkMotorStatus();
+      checkTrackingStatus();
+      setInterval(checkMotorStatus, 5000);
+      setInterval(checkTrackingStatus, 2000);
+
+      // Start microbot data updates
+      setInterval(updateMicrobotData, 500);
+    }
+
+    // Start everything
+    init();
+  </script>
+</body>
+</html>

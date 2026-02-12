@@ -1,5 +1,5 @@
 // MotorControlNine.ino
-// 9-motor PWM + CLOSED-LOOP RPM control (best-effort) for Teensy 4.1
+// 9-motor PWM + CLOSED-LOOP PID RPM control for Teensy 4.1
 //
 // TEENSY 4.1 ADVANTAGES:
 // ----------------------
@@ -10,11 +10,12 @@
 //
 // This firmware:
 //  - drives up to 9 motors via two PCA9685 boards (0x40 and 0x41)
-//  - supports encoder closed-loop on a subset (default: motors 1 and 2)
+//  - supports encoder closed-loop on ALL 9 motors (configured by default)
 //  - uses encoder A on interrupt-capable pins (ALL Teensy 4.1 pins support interrupts)
-//      M1: A=2, B=3
-//      M2: A=4, B=5
-//  - can easily expand to more encoders (just add pins to encA/encB arrays and ISRs)
+//      M1: A=2,  B=3   |  M2: A=4,  B=5   |  M3: A=6,  B=7
+//      M4: A=8,  B=9   |  M5: A=10, B=11  |  M6: A=12, B=14
+//      M7: A=15, B=16  |  M8: A=17, B=20  |  M9: A=21, B=22
+//  - to disable encoders on specific motors, set pin to 255 in encA/encB arrays
 //
 // Serial robustness + UI fixes:
 //  - Uses RISING interrupts (less ISR load/noise sensitivity)
@@ -78,15 +79,27 @@ static const int CTRL_DT_MS = 50;    // control loop period
 // Encoder pins (Teensy 4.1: ALL pins support interrupts!)
 // Avoid pins 18 (SDA) and 19 (SCL) for I2C. Set to 255 for "not present".
 uint8_t encA[10] = {255,
-  2,   // M1 A -> pin 2  (all Teensy 4.1 pins are interrupt-capable)
+  2,   // M1 A -> pin 2
   4,   // M2 A -> pin 4
-  255,255,255,255,255,255,255
+  6,   // M3 A -> pin 6
+  8,   // M4 A -> pin 8
+  10,  // M5 A -> pin 10
+  12,  // M6 A -> pin 12
+  15,  // M7 A -> pin 15
+  17,  // M8 A -> pin 17 (skip 18/19 for I2C)
+  21   // M9 A -> pin 21
 };
 
 uint8_t encB[10] = {255,
   3,   // M1 B -> pin 3
   5,   // M2 B -> pin 5
-  255,255,255,255,255,255,255
+  7,   // M3 B -> pin 7
+  9,   // M4 B -> pin 9
+  11,  // M5 B -> pin 11
+  14,  // M6 B -> pin 14 (skip 13, often has LED)
+  16,  // M7 B -> pin 16
+  20,  // M8 B -> pin 20
+  22   // M9 B -> pin 22
 };
 
 // --- State tracking ---
@@ -99,10 +112,12 @@ uint16_t pwmDuty[10]     = {0};
 bool     enabled[10]     = {false};
 bool     dirCw[10]       = {true};
 
-// Simple PI controller (per-motor)
-float kP[10]    = {0};
-float kI[10]    = {0};
-float integ[10] = {0};
+// Full PID controller (per-motor) - optimized for smooth, fast response
+float kP[10]       = {0};
+float kI[10]       = {0};
+float kD[10]       = {0};
+float integ[10]    = {0};
+int   prevErr[10]  = {0};  // For derivative term
 
 // Convert 0..4095 duty into PCA output
 static inline uint16_t clampU16(int v) {
@@ -161,6 +176,41 @@ void isrEncA2() {
   bool b = digitalRead(encB[2]);
   encCount[2] += (a == b) ? 1 : -1;
 }
+void isrEncA3() {
+  bool a = digitalRead(encA[3]);
+  bool b = digitalRead(encB[3]);
+  encCount[3] += (a == b) ? 1 : -1;
+}
+void isrEncA4() {
+  bool a = digitalRead(encA[4]);
+  bool b = digitalRead(encB[4]);
+  encCount[4] += (a == b) ? 1 : -1;
+}
+void isrEncA5() {
+  bool a = digitalRead(encA[5]);
+  bool b = digitalRead(encB[5]);
+  encCount[5] += (a == b) ? 1 : -1;
+}
+void isrEncA6() {
+  bool a = digitalRead(encA[6]);
+  bool b = digitalRead(encB[6]);
+  encCount[6] += (a == b) ? 1 : -1;
+}
+void isrEncA7() {
+  bool a = digitalRead(encA[7]);
+  bool b = digitalRead(encB[7]);
+  encCount[7] += (a == b) ? 1 : -1;
+}
+void isrEncA8() {
+  bool a = digitalRead(encA[8]);
+  bool b = digitalRead(encB[8]);
+  encCount[8] += (a == b) ? 1 : -1;
+}
+void isrEncA9() {
+  bool a = digitalRead(encA[9]);
+  bool b = digitalRead(encB[9]);
+  encCount[9] += (a == b) ? 1 : -1;
+}
 
 bool hasEncoder(uint8_t id) {
   return (id >= 1 && id <= 9 && encA[id] != 255 && encB[id] != 255);
@@ -179,12 +229,57 @@ void attachEncoders() {
     pinMode(encB[2], INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(encA[2]), isrEncA2, RISING);
   }
+  // Motor 3
+  if (encA[3] != 255) {
+    pinMode(encA[3], INPUT_PULLUP);
+    pinMode(encB[3], INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(encA[3]), isrEncA3, RISING);
+  }
+  // Motor 4
+  if (encA[4] != 255) {
+    pinMode(encA[4], INPUT_PULLUP);
+    pinMode(encB[4], INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(encA[4]), isrEncA4, RISING);
+  }
+  // Motor 5
+  if (encA[5] != 255) {
+    pinMode(encA[5], INPUT_PULLUP);
+    pinMode(encB[5], INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(encA[5]), isrEncA5, RISING);
+  }
+  // Motor 6
+  if (encA[6] != 255) {
+    pinMode(encA[6], INPUT_PULLUP);
+    pinMode(encB[6], INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(encA[6]), isrEncA6, RISING);
+  }
+  // Motor 7
+  if (encA[7] != 255) {
+    pinMode(encA[7], INPUT_PULLUP);
+    pinMode(encB[7], INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(encA[7]), isrEncA7, RISING);
+  }
+  // Motor 8
+  if (encA[8] != 255) {
+    pinMode(encA[8], INPUT_PULLUP);
+    pinMode(encB[8], INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(encA[8]), isrEncA8, RISING);
+  }
+  // Motor 9
+  if (encA[9] != 255) {
+    pinMode(encA[9], INPUT_PULLUP);
+    pinMode(encB[9], INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(encA[9]), isrEncA9, RISING);
+  }
 }
 
 void setupControllerGains() {
+  // Optimized PID gains for smooth, fast response
+  // Tuned for Pololu 10:1 micro metal gearmotor with 12 CPR encoder
   for (int i = 1; i <= 9; i++) {
-    kP[i] = 0.9f;
-    kI[i] = 0.15f;
+    kP[i] = 1.5f;   // Proportional: fast response to error (increased from 0.9)
+    kI[i] = 0.25f;  // Integral: eliminate steady-state error (increased from 0.15)
+    kD[i] = 0.08f;  // Derivative: damping for smoothness (NEW!)
   }
 }
 
@@ -198,6 +293,7 @@ void startMotor(uint8_t id, int rpm, bool cw) {
   enabled[id]   = true;
 
   integ[id]   = 0.0f;
+  prevErr[id] = 0;     // Reset derivative term
   pwmDuty[id] = rpmToDutyFF(rpm);
   driveMotorRaw(id, pwmDuty[id], cw);
 }
@@ -207,6 +303,7 @@ void stopMotor(uint8_t id) {
   enabled[id]   = false;
   targetRpm[id] = 0;
   integ[id]     = 0.0f;
+  prevErr[id]   = 0;
   pwmDuty[id]   = 0;
   driveMotorRaw(id, 0, true);
 }
@@ -256,15 +353,25 @@ void controlStep() {
       continue;
     }
 
-    // PI control for encoder-equipped motors
+    // Full PID control for encoder-equipped motors
     int tgt = targetRpm[id];
     int err = tgt - measuredRpm[id];
 
+    // Integral term (with anti-windup)
     integ[id] += (float)err * ((float)dt / 1000.0f);
     if (integ[id] > 3000.0f)  integ[id] = 3000.0f;
     if (integ[id] < -3000.0f) integ[id] = -3000.0f;
 
-    float u = (float)rpmToDutyFF(tgt) + kP[id] * (float)err + kI[id] * integ[id];
+    // Derivative term (rate of change of error)
+    float deriv = ((float)err - (float)prevErr[id]) / ((float)dt / 1000.0f);
+    prevErr[id] = err;
+
+    // PID equation: u = FF + P + I + D
+    float u = (float)rpmToDutyFF(tgt)
+              + kP[id] * (float)err
+              + kI[id] * integ[id]
+              + kD[id] * deriv;
+
     pwmDuty[id] = clampU16((int)(u + 0.5f));
     driveMotorRaw(id, pwmDuty[id], dirCw[id]);
   }
