@@ -212,7 +212,7 @@ CMakeFiles/one_motor.dir/backend/main.cpp.o: \
  /usr/include/c++/13/atomic /usr/include/c++/13/bits/atomic_base.h \
  /usr/include/c++/13/bits/atomic_lockfree_defines.h \
  /home/ashed/Documents/one-motor-cpp/backend/MotorController.hpp \
- /usr/include/c++/13/optional \
- /home/ashed/Documents/one-motor-cpp/backend/SerialPort.hpp \
- /usr/include/c++/13/mutex /usr/include/c++/13/bits/std_mutex.h \
- /usr/include/c++/13/bits/unique_lock.h
+ /usr/include/c++/13/optional /usr/include/c++/13/mutex \
+ /usr/include/c++/13/bits/std_mutex.h \
+ /usr/include/c++/13/bits/unique_lock.h \
+ /home/ashed/Documents/one-motor-cpp/backend/SerialPort.hpp

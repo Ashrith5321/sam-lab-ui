@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <optional>
+#include <mutex>
 #include "SerialPort.hpp"
 
 enum class Direction { CW, CCW };
@@ -28,5 +29,6 @@ public:
 
 private:
     SerialPort sp_;
+    std::mutex txnMtx_;  // protects write+read transactions from interleaving
     bool sendLine(const std::string &line, int expectAckMs=100);
 };

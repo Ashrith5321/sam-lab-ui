@@ -27,6 +27,7 @@ bool MotorController::connect(const std::string &device, int baud){
 }
 
 std::optional<std::string> MotorController::status(){
+    std::lock_guard<std::mutex> lk(txnMtx_);
     sp_.writeLine("STATUS");
     std::string line; if (sp_.readLine(line, 500)) return line; else return std::nullopt;
 }
@@ -54,6 +55,7 @@ bool MotorController::set(int id, int targetRpm, Direction dir){
 }
 
 std::optional<std::string> MotorController::read(int id){
+    std::lock_guard<std::mutex> lk(txnMtx_);
     std::ostringstream ss; ss << "M"<<id<<":READ";
     sp_.writeLine(ss.str());
     std::string line;
@@ -63,6 +65,7 @@ std::optional<std::string> MotorController::read(int id){
 
 
 std::optional<std::string> MotorController::readAll(){
+    std::lock_guard<std::mutex> lk(txnMtx_);
     sp_.writeLine("ENC");
 
     std::ostringstream out;
@@ -77,6 +80,7 @@ std::optional<std::string> MotorController::readAll(){
 
 
 bool MotorController::sendLine(const std::string &line, int expectAckMs){
+    std::lock_guard<std::mutex> lk(txnMtx_);
     std::cerr << "[SERIAL→] " << line << "\n";
     if (!sp_.writeLine(line)) return false;
 

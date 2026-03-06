@@ -18,7 +18,8 @@
 //  - to disable encoders on specific motors, set pin to 255 in encA/encB arrays
 //
 // Serial robustness + UI fixes:
-//  - Uses RISING interrupts (less ISR load/noise sensitivity)
+//  - Uses CHANGE interrupts for 2x encoder resolution (24 counts/motor-rev)
+//  - EMA filter on measured RPM for smooth, stable readings
 //  - Updates measured RPM even when motor is not enabled (hand-spin shows RPM)
 //  - ENC prints ONE motor per line (newline terminated), easy to parse
 //
@@ -67,10 +68,10 @@ PwmMap pwmMap[10] = {
 
 // --- Encoder + control configuration ---
 // Pololu 12 CPR quadrature encoder.
-// We decode using RISING interrupts on channel A only -> 1x decoding (lower ISR load)
+// We decode using CHANGE interrupts on channel A -> 2x decoding (better resolution)
 static const float ENC_CPR = 12.0f;
 static const float GEAR_RATIO = 9.96f;               // per Pololu listing
-static const float COUNTS_PER_MOTOR_REV = ENC_CPR * 1.0f; // 1x (RISING only)
+static const float COUNTS_PER_MOTOR_REV = ENC_CPR * 2.0f; // 2x (CHANGE = rising+falling)
 static const float COUNTS_PER_OUTPUT_REV = COUNTS_PER_MOTOR_REV * GEAR_RATIO;
 
 static const int MAX_RPM    = 1500;  // output shaft rpm cap
@@ -108,9 +109,14 @@ long encCountPrev[10]      = {0};
 
 int      targetRpm[10]   = {0};
 int      measuredRpm[10] = {0};
+float    filteredRpm[10] = {0}; // EMA-smoothed RPM for display & PID
 uint16_t pwmDuty[10]     = {0};
 bool     enabled[10]     = {false};
 bool     dirCw[10]       = {true};
+
+// EMA filter coefficient: 0.0 = very smooth (laggy), 1.0 = no filter (raw)
+// 0.25 gives good smoothing while staying responsive
+static const float EMA_ALPHA = 0.25f;
 
 // Full PID controller (per-motor) - optimized for smooth, fast response
 float kP[10]       = {0};
@@ -217,67 +223,29 @@ bool hasEncoder(uint8_t id) {
 }
 
 void attachEncoders() {
-  // Motor 1
-  if (encA[1] != 255) {
-    pinMode(encA[1], INPUT_PULLUP);
-    pinMode(encB[1], INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(encA[1]), isrEncA1, RISING);
+  // All motors: use CHANGE for 2x resolution (rising + falling edges)
+  for (uint8_t i = 1; i <= 9; i++) {
+    if (encA[i] != 255) {
+      pinMode(encA[i], INPUT_PULLUP);
+      pinMode(encB[i], INPUT_PULLUP);
+    }
   }
-  // Motor 2
-  if (encA[2] != 255) {
-    pinMode(encA[2], INPUT_PULLUP);
-    pinMode(encB[2], INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(encA[2]), isrEncA2, RISING);
-  }
-  // Motor 3
-  if (encA[3] != 255) {
-    pinMode(encA[3], INPUT_PULLUP);
-    pinMode(encB[3], INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(encA[3]), isrEncA3, RISING);
-  }
-  // Motor 4
-  if (encA[4] != 255) {
-    pinMode(encA[4], INPUT_PULLUP);
-    pinMode(encB[4], INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(encA[4]), isrEncA4, RISING);
-  }
-  // Motor 5
-  if (encA[5] != 255) {
-    pinMode(encA[5], INPUT_PULLUP);
-    pinMode(encB[5], INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(encA[5]), isrEncA5, RISING);
-  }
-  // Motor 6
-  if (encA[6] != 255) {
-    pinMode(encA[6], INPUT_PULLUP);
-    pinMode(encB[6], INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(encA[6]), isrEncA6, RISING);
-  }
-  // Motor 7
-  if (encA[7] != 255) {
-    pinMode(encA[7], INPUT_PULLUP);
-    pinMode(encB[7], INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(encA[7]), isrEncA7, RISING);
-  }
-  // Motor 8
-  if (encA[8] != 255) {
-    pinMode(encA[8], INPUT_PULLUP);
-    pinMode(encB[8], INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(encA[8]), isrEncA8, RISING);
-  }
-  // Motor 9
-  if (encA[9] != 255) {
-    pinMode(encA[9], INPUT_PULLUP);
-    pinMode(encB[9], INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(encA[9]), isrEncA9, RISING);
-  }
+  if (encA[1] != 255) attachInterrupt(digitalPinToInterrupt(encA[1]), isrEncA1, CHANGE);
+  if (encA[2] != 255) attachInterrupt(digitalPinToInterrupt(encA[2]), isrEncA2, CHANGE);
+  if (encA[3] != 255) attachInterrupt(digitalPinToInterrupt(encA[3]), isrEncA3, CHANGE);
+  if (encA[4] != 255) attachInterrupt(digitalPinToInterrupt(encA[4]), isrEncA4, CHANGE);
+  if (encA[5] != 255) attachInterrupt(digitalPinToInterrupt(encA[5]), isrEncA5, CHANGE);
+  if (encA[6] != 255) attachInterrupt(digitalPinToInterrupt(encA[6]), isrEncA6, CHANGE);
+  if (encA[7] != 255) attachInterrupt(digitalPinToInterrupt(encA[7]), isrEncA7, CHANGE);
+  if (encA[8] != 255) attachInterrupt(digitalPinToInterrupt(encA[8]), isrEncA8, CHANGE);
+  if (encA[9] != 255) attachInterrupt(digitalPinToInterrupt(encA[9]), isrEncA9, CHANGE);
 }
 
 void setupControllerGains() {
   // Optimized PID gains for smooth, fast response
   // Tuned for Pololu 10:1 micro metal gearmotor with 12 CPR encoder
   for (int i = 1; i <= 9; i++) {
-    kP[i] = 1.5f;   // Proportional: fast response to error (increased from 0.9)
+    kP[i] = 5f;   // Proportional: fast response to error (increased from 0.9)
     kI[i] = 0.25f;  // Integral: eliminate steady-state error (increased from 0.15)
     kD[i] = 0.08f;  // Derivative: damping for smoothness (NEW!)
   }
@@ -300,11 +268,12 @@ void startMotor(uint8_t id, int rpm, bool cw) {
 
 void stopMotor(uint8_t id) {
   if (id < 1 || id > 9) return;
-  enabled[id]   = false;
-  targetRpm[id] = 0;
-  integ[id]     = 0.0f;
-  prevErr[id]   = 0;
-  pwmDuty[id]   = 0;
+  enabled[id]     = false;
+  targetRpm[id]   = 0;
+  integ[id]       = 0.0f;
+  prevErr[id]     = 0;
+  filteredRpm[id] = 0.0f;
+  pwmDuty[id]     = 0;
   driveMotorRaw(id, 0, true);
 }
 
@@ -338,9 +307,14 @@ void controlStep() {
 
       long dCounts = c - encCountPrev[id];
       encCountPrev[id] = c;
-      measuredRpm[id]  = countsToRpm(dCounts, dt);
+      int rawRpm = countsToRpm(dCounts, dt);
+
+      // EMA filter: smooth out noisy measurements
+      filteredRpm[id] = EMA_ALPHA * (float)rawRpm + (1.0f - EMA_ALPHA) * filteredRpm[id];
+      measuredRpm[id] = (int)(filteredRpm[id] + 0.5f);
     } else {
       measuredRpm[id] = 0;
+      filteredRpm[id] = 0.0f;
     }
 
     // If not enabled, don't drive
@@ -353,7 +327,7 @@ void controlStep() {
       continue;
     }
 
-    // Full PID control for encoder-equipped motors
+    // Full PID control using filtered RPM for stability
     int tgt = targetRpm[id];
     int err = tgt - measuredRpm[id];
 

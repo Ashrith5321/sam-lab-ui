@@ -173,17 +173,43 @@ function motorCard(id){
     }
   }
 
-  // start polling immediately
-  poll();
-  setInterval(poll, 200);
-
   return el;
+}
+
+// Single global poll for all 9 motors (1 serial transaction instead of 9)
+async function pollAllMotors(){
+  try {
+    const j = await api('/api/encoders');
+    if(!j.line) return;
+    const lines = j.line.split('\n');
+    for(const line of lines){
+      if(!line.startsWith('M,')) continue;
+      const p = line.split(',');
+      if(p.length < 8) continue;
+      const id = parseInt(p[1]);
+      if(id < 1 || id > 9) continue;
+
+      const meas = document.getElementById(`meas-${id}`);
+      const count = document.getElementById(`count-${id}`);
+      const pwm = document.getElementById(`pwm-${id}`);
+      const en = document.getElementById(`en-${id}`);
+      const dirv = document.getElementById(`dirv-${id}`);
+
+      if(meas) meas.textContent = p[2];
+      if(count) count.textContent = p[3];
+      if(pwm) pwm.textContent = p[4];
+      if(en) en.textContent = (p[7] === '1') ? 'EN' : 'OFF';
+      if(dirv) dirv.textContent = (p[6] === '1') ? 'CW' : 'CCW';
+    }
+  } catch(e) {}
 }
 
 function init(){
   const grid = document.getElementById('grid');
   for(let i=1;i<=9;i++) grid.appendChild(motorCard(i));
   refreshStatus();
+  pollAllMotors();
+  setInterval(pollAllMotors, 300);
 }
 
 init();

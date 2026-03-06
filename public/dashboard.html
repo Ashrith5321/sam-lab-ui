@@ -57,12 +57,12 @@
 
     .container {
       max-width: 100%;
-      padding: 10px;
+      padding: 4px;
       position: relative;
       z-index: 1;
       display: grid;
-      grid-template-columns: 1fr 380px;
-      gap: 12px;
+      grid-template-columns: 1fr 300px;
+      gap: 5px;
       height: 100vh;
     }
 
@@ -70,7 +70,7 @@
     .motor-section {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 4px;
       overflow-y: auto;
     }
 
@@ -81,10 +81,10 @@
     }
 
     .header h1 {
-      font-size: 1.4rem;
+      font-size: 0.85rem;
       font-weight: 700;
       color: var(--text);
-      margin-bottom: 6px;
+      margin-bottom: 3px;
       letter-spacing: 0px;
     }
 
@@ -92,8 +92,8 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 12px;
-      font-size: 0.75rem;
+      gap: 6px;
+      font-size: 0.55rem;
       color: var(--text-dim);
       flex-wrap: wrap;
     }
@@ -101,16 +101,16 @@
     .status-item {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 3px;
     }
 
     .status-indicator {
-      width: 8px;
-      height: 8px;
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
       background: var(--success);
       animation: pulse 2s ease-in-out infinite;
-      box-shadow: 0 0 12px var(--glow-success);
+      box-shadow: 0 0 8px var(--glow-success);
     }
 
     .status-indicator.offline {
@@ -127,48 +127,48 @@
     .master-control {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px;
+      border-radius: 5px;
+      padding: 6px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
       animation: fadeInDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
     }
 
     .master-control h2 {
-      font-size: 0.95rem;
+      font-size: 0.65rem;
       font-weight: 700;
       color: var(--text);
-      margin-bottom: 10px;
+      margin-bottom: 5px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
     }
 
     .master-controls-grid {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
+      gap: 4px;
       align-items: end;
     }
 
     .master-input-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 2px;
     }
 
     .master-label {
-      font-size: 0.65rem;
+      font-size: 0.5rem;
       font-weight: 600;
       color: var(--text-dim);
       text-transform: uppercase;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.1px;
     }
 
     .master-rpm-input {
       background: var(--surface-light);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 10px;
-      font-size: 0.9rem;
+      border-radius: 4px;
+      padding: 4px 6px;
+      font-size: 0.7rem;
       font-weight: 700;
       color: var(--text);
       transition: all 0.2s ease;
@@ -183,19 +183,19 @@
 
     .master-direction-group {
       display: flex;
-      gap: 6px;
+      gap: 2px;
       background: var(--surface-light);
-      padding: 3px;
-      border-radius: 10px;
-      border: 2px solid var(--border);
+      padding: 2px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
     }
 
     .master-dir-btn {
       flex: 1;
-      padding: 8px;
+      padding: 4px;
       border: none;
-      border-radius: 6px;
-      font-size: 0.75rem;
+      border-radius: 3px;
+      font-size: 0.6rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
@@ -206,22 +206,22 @@
     .master-dir-btn.active {
       background: var(--primary);
       color: white;
-      box-shadow: 0 2px 8px var(--glow-primary);
+      box-shadow: 0 1px 4px var(--glow-primary);
     }
 
     .btn-start-all {
-      padding: 10px 20px;
+      padding: 5px 8px;
       border: none;
-      border-radius: 8px;
-      font-size: 0.8rem;
+      border-radius: 4px;
+      font-size: 0.6rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
       background: var(--success);
       color: white;
-      box-shadow: 0 2px 8px var(--glow-success);
+      box-shadow: 0 1px 4px var(--glow-success);
       position: relative;
       overflow: hidden;
     }
@@ -239,13 +239,13 @@
     .grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
+      gap: 3px;
     }
 
     .motor-card {
       background: var(--surface);
-      border-radius: 8px;
-      padding: 12px;
+      border-radius: 3px;
+      padding: 3px;
       border: 1px solid var(--border);
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
       transition: all 0.2s ease;
@@ -271,13 +271,13 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
-      padding-bottom: 8px;
+      margin-bottom: 1px;
+      padding-bottom: 1px;
       border-bottom: 1px solid var(--border);
     }
 
     .motor-title {
-      font-size: 1.1rem;
+      font-size: 0.65rem;
       font-weight: 700;
       color: var(--text);
     }
@@ -285,13 +285,13 @@
     .motor-status {
       display: flex;
       align-items: center;
-      gap: 5px;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.7rem;
+      gap: 1px;
+      padding: 1px 4px;
+      border-radius: 2px;
+      font-size: 0.45rem;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.1px;
     }
 
     .motor-status.running {
@@ -307,8 +307,8 @@
     }
 
     .motor-status-dot {
-      width: 6px;
-      height: 6px;
+      width: 3px;
+      height: 3px;
       border-radius: 50%;
       background: currentColor;
     }
@@ -316,37 +316,36 @@
     .controls-section {
       display: flex;
       flex-direction: column;
-      gap: 7px;
-      flex: 1;
+      gap: 1px;
     }
 
     .control-group {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 0px;
     }
 
     .control-label {
-      font-size: 0.65rem;
+      font-size: 0.4rem;
       font-weight: 600;
       color: var(--text-dim);
       text-transform: uppercase;
-      letter-spacing: 0.3px;
+      letter-spacing: 0px;
     }
 
     .rpm-input-group {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 2px;
     }
 
     .rpm-input {
       flex: 1;
       background: var(--surface-light);
       border: 1px solid var(--border);
-      border-radius: 5px;
-      padding: 6px 8px;
-      font-size: 0.85rem;
+      border-radius: 2px;
+      padding: 1px 2px;
+      font-size: 0.55rem;
       font-weight: 600;
       color: var(--text);
       transition: all 0.2s ease;
@@ -360,25 +359,25 @@
     }
 
     .rpm-unit {
-      font-size: 0.7rem;
+      font-size: 0.45rem;
       font-weight: 600;
       color: var(--text-dim);
     }
 
     .direction-group {
       display: flex;
-      gap: 4px;
+      gap: 1px;
       background: var(--surface-light);
-      padding: 2px;
-      border-radius: 5px;
+      padding: 1px;
+      border-radius: 2px;
     }
 
     .direction-btn {
       flex: 1;
-      padding: 6px;
+      padding: 1px;
       border: none;
-      border-radius: 4px;
-      font-size: 0.7rem;
+      border-radius: 1px;
+      font-size: 0.45rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
@@ -394,19 +393,20 @@
     .action-buttons {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 5px;
+      gap: 1px;
+      margin-bottom: 0px;
     }
 
     .btn {
-      padding: 8px 6px;
+      padding: 1px;
       border: none;
-      border-radius: 5px;
-      font-size: 0.7rem;
+      border-radius: 2px;
+      font-size: 0.42rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
       text-transform: uppercase;
-      letter-spacing: 0.2px;
+      letter-spacing: 0px;
     }
 
     .btn-start {
@@ -433,43 +433,43 @@
     }
 
     .telemetry-section {
-      margin-top: auto;
-      padding-top: 7px;
+      margin-top: 0px;
+      padding-top: 1px;
       border-top: 1px solid var(--border);
     }
 
     .telemetry-title {
-      font-size: 0.6rem;
+      font-size: 0.38rem;
       font-weight: 600;
       color: var(--text-dim);
-      margin-bottom: 5px;
+      margin-bottom: 0px;
       text-transform: uppercase;
-      letter-spacing: 0.3px;
+      letter-spacing: 0px;
     }
 
     .telemetry-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 5px;
+      gap: 1px;
     }
 
     .telemetry-item {
       background: var(--surface-light);
-      padding: 5px 6px;
-      border-radius: 5px;
+      padding: 1px;
+      border-radius: 1px;
       border: 1px solid var(--border);
     }
 
     .telemetry-label {
-      font-size: 0.6rem;
+      font-size: 0.38rem;
       color: var(--text-dim);
-      margin-bottom: 2px;
+      margin-bottom: 0px;
       text-transform: uppercase;
-      letter-spacing: 0.2px;
+      letter-spacing: 0px;
     }
 
     .telemetry-value {
-      font-size: 0.85rem;
+      font-size: 0.5rem;
       font-weight: 700;
       font-family: 'SF Mono', monospace;
       color: var(--text);
@@ -483,54 +483,54 @@
     .tracking-section {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 4px;
       overflow-y: auto;
     }
 
     .tracking-panel {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
+      border-radius: 4px;
+      padding: 5px;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
       animation: fadeInRight 0.8s ease both;
     }
 
     .tracking-panel h2 {
-      font-size: 0.9rem;
+      font-size: 0.6rem;
       font-weight: 700;
       color: var(--text);
-      margin-bottom: 8px;
+      margin-bottom: 4px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
     }
 
     .microbot-count {
       background: var(--primary);
       color: white;
-      padding: 4px 10px;
-      border-radius: 5px;
-      font-size: 1.1rem;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 0.75rem;
       font-weight: 700;
-      box-shadow: 0 2px 8px var(--glow-primary);
+      box-shadow: 0 1px 4px var(--glow-primary);
     }
 
     /* Camera Feeds */
     .camera-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 10px;
+      gap: 4px;
     }
 
     .camera-view {
       position: relative;
       background: var(--surface-light);
-      border-radius: 12px;
+      border-radius: 5px;
       overflow: hidden;
-      border: 2px solid var(--border);
+      border: 1px solid var(--border);
       aspect-ratio: 4/3;
     }
 
@@ -542,16 +542,16 @@
 
     .camera-label {
       position: absolute;
-      top: 8px;
-      left: 8px;
+      top: 4px;
+      left: 4px;
       background: rgba(10, 14, 39, 0.8);
       color: var(--text);
-      padding: 4px 10px;
-      border-radius: 8px;
-      font-size: 0.7rem;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-size: 0.5rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
       border: 1px solid var(--border);
     }
 
@@ -561,26 +561,26 @@
       justify-content: center;
       height: 100%;
       color: var(--text-dim);
-      font-size: 0.9rem;
+      font-size: 0.6rem;
     }
 
     /* Occupancy Grids */
     .grid-display {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
-      gap: 3px;
-      margin-top: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(20px, 1fr));
+      gap: 1px;
+      margin-top: 4px;
     }
 
     .grid-cell {
       aspect-ratio: 1;
       background: var(--surface-light);
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 2px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.75rem;
+      font-size: 0.55rem;
       font-weight: 700;
       font-family: 'SF Mono', monospace;
       transition: all 0.2s ease;
@@ -594,44 +594,44 @@
 
     /* Microbot List */
     .microbot-list {
-      max-height: 200px;
+      max-height: 150px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 3px;
     }
 
     .microbot-item {
       background: var(--surface-light);
-      padding: 8px;
-      border-radius: 8px;
+      padding: 4px;
+      border-radius: 4px;
       border: 1px solid var(--border);
       display: grid;
       grid-template-columns: auto 1fr;
-      gap: 8px;
-      font-size: 0.75rem;
+      gap: 4px;
+      font-size: 0.55rem;
       transition: all 0.2s ease;
     }
 
     .microbot-item:hover {
       border-color: var(--primary);
-      transform: translateX(4px);
+      transform: translateX(3px);
     }
 
     .microbot-id {
       background: var(--primary);
       color: white;
-      padding: 6px 10px;
-      border-radius: 4px;
+      padding: 3px 6px;
+      border-radius: 3px;
       font-weight: 700;
       text-align: center;
-      min-width: 45px;
+      min-width: 35px;
     }
 
     .microbot-info {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 1px;
     }
 
     .microbot-info span {
@@ -687,18 +687,18 @@
     /* Toast notifications */
     .toast {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
+      bottom: 15px;
+      right: 15px;
       background: var(--surface);
       border: 1px solid var(--success);
-      border-radius: 8px;
-      padding: 12px 18px;
+      border-radius: 4px;
+      padding: 8px 12px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
       color: var(--text);
       font-weight: 500;
       z-index: 1000;
       animation: slideIn 0.3s ease-out;
-      font-size: 0.9rem;
+      font-size: 0.65rem;
     }
 
     @keyframes slideIn {
@@ -731,16 +731,118 @@
       background: var(--primary);
     }
 
+    /* Navigation Planner */
+    .nav-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .nav-row {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .nav-row label {
+      font-size: 0.5rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      min-width: 30px;
+    }
+
+    .nav-select, .nav-rpm-input {
+      flex: 1;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 3px 5px;
+      font-size: 0.55rem;
+      font-weight: 600;
+      color: var(--text);
+      font-family: 'SF Mono', monospace;
+    }
+
+    .nav-select:focus, .nav-rpm-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 3px;
+    }
+
+    .btn-navigate {
+      flex: 1;
+      padding: 4px 6px;
+      border: none;
+      border-radius: 3px;
+      font-size: 0.5rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-transform: uppercase;
+      background: var(--secondary);
+      color: white;
+      transition: all 0.2s ease;
+    }
+
+    .btn-navigate:hover { transform: translateY(-1px); }
+    .btn-navigate:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-nav-cancel {
+      padding: 4px 6px;
+      border: none;
+      border-radius: 3px;
+      font-size: 0.5rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-transform: uppercase;
+      background: var(--danger);
+      color: white;
+      transition: all 0.2s ease;
+    }
+
+    .btn-nav-cancel:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .nav-status {
+      font-size: 0.5rem;
+      color: var(--text-dim);
+      padding: 3px 5px;
+      background: var(--surface-light);
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      min-height: 18px;
+    }
+
+    .nav-status.active {
+      color: var(--secondary);
+      border-color: var(--secondary);
+    }
+
+    .nav-path-preview {
+      font-size: 0.5rem;
+      color: var(--text-dim);
+      font-family: 'SF Mono', monospace;
+      padding: 2px 0;
+    }
+
+    .nav-path-preview .active-motor {
+      color: var(--secondary);
+      font-weight: 700;
+    }
+
     /* Responsive */
     @media (min-width: 1400px) {
       .container {
-        grid-template-columns: 1fr 420px;
+        grid-template-columns: 1fr 340px;
       }
     }
 
     @media (max-width: 1200px) {
       .container {
-        grid-template-columns: 1fr 360px;
+        grid-template-columns: 1fr 280px;
       }
 
       .grid {
@@ -880,6 +982,37 @@
           <div style="color: var(--text-dim); text-align: center; padding: 20px;">
             No microbots detected
           </div>
+        </div>
+      </div>
+
+      <!-- Navigation Planner -->
+      <div class="tracking-panel">
+        <h2>NAVIGATION PLANNER</h2>
+        <div class="nav-controls">
+          <div class="nav-row">
+            <label>From</label>
+            <select class="nav-select" id="nav-from">
+              <option value="1">M1</option><option value="2">M2</option><option value="3">M3</option>
+              <option value="4">M4</option><option value="5">M5</option><option value="6">M6</option>
+              <option value="7">M7</option><option value="8">M8</option><option value="9">M9</option>
+            </select>
+            <label>To</label>
+            <select class="nav-select" id="nav-to">
+              <option value="1">M1</option><option value="2">M2</option><option value="3">M3</option>
+              <option value="4">M4</option><option value="5">M5</option><option value="6">M6</option>
+              <option value="7">M7</option><option value="8">M8</option><option value="9">M9</option>
+            </select>
+          </div>
+          <div class="nav-row">
+            <label>RPM</label>
+            <input type="number" class="nav-rpm-input" id="nav-rpm" value="500" min="0" max="1500" step="10">
+          </div>
+          <div class="nav-path-preview" id="nav-path-preview">Path: --</div>
+          <div class="nav-buttons">
+            <button class="btn-navigate" id="nav-start-btn">Navigate</button>
+            <button class="btn-nav-cancel" id="nav-cancel-btn" disabled>Cancel</button>
+          </div>
+          <div class="nav-status" id="nav-status">Idle</div>
         </div>
       </div>
     </div>
@@ -1162,36 +1295,6 @@
         }
       };
 
-      async function updateTelemetry() {
-        try {
-          const j = await api(`/api/motor/${id}/read`);
-          const data = parseTelemetry(j.line);
-
-          if (data) {
-            const statusEl = card.querySelector(`#status-${id}`);
-            if (data.enabled) {
-              statusEl.className = 'motor-status running';
-              statusEl.innerHTML = '<div class="motor-status-dot"></div><span>ON</span>';
-              card.classList.add('running');
-            } else {
-              statusEl.className = 'motor-status stopped';
-              statusEl.innerHTML = '<div class="motor-status-dot"></div><span>OFF</span>';
-              card.classList.remove('running');
-            }
-
-            card.querySelector(`#meas-${id}`).textContent = data.rpm;
-            card.querySelector(`#pwm-${id}`).textContent = data.pwm;
-            card.querySelector(`#count-${id}`).textContent = data.count;
-            card.querySelector(`#target-${id}`).textContent = `${data.target}/${data.dir}`;
-          }
-        } catch (e) {
-          // Silently handle errors
-        }
-      }
-
-      updateTelemetry();
-      setInterval(updateTelemetry, 200);
-
       return card;
     }
 
@@ -1242,6 +1345,149 @@
       };
     }
 
+    // ==================== GLOBAL TELEMETRY POLL ====================
+    // Single poll for all 9 motors via /api/encoders (1 serial transaction)
+    async function pollAllTelemetry() {
+      try {
+        const j = await api('/api/encoders');
+        if (!j.line) return;
+        const lines = j.line.split('\n');
+        for (const line of lines) {
+          const data = parseTelemetry(line);
+          if (!data) continue;
+          const id = data.id;
+          const card = document.querySelector(`.motor-card:nth-child(${id})`);
+          if (!card) continue;
+
+          const statusEl = card.querySelector(`#status-${id}`);
+          if (data.enabled) {
+            statusEl.className = 'motor-status running';
+            statusEl.innerHTML = '<div class="motor-status-dot"></div><span>ON</span>';
+            card.classList.add('running');
+          } else {
+            statusEl.className = 'motor-status stopped';
+            statusEl.innerHTML = '<div class="motor-status-dot"></div><span>OFF</span>';
+            card.classList.remove('running');
+          }
+
+          card.querySelector(`#meas-${id}`).textContent = data.rpm;
+          card.querySelector(`#pwm-${id}`).textContent = data.pwm;
+          card.querySelector(`#count-${id}`).textContent = data.count;
+          card.querySelector(`#target-${id}`).textContent = `${data.target}/${data.dir}`;
+        }
+      } catch (e) {
+        // Silently handle errors
+      }
+    }
+
+    // ==================== NAVIGATION PLANNER ====================
+    const NAV_API = 'http://localhost:5175';
+    let navPolling = null;
+
+    function setupNavigation() {
+      const fromSelect = document.getElementById('nav-from');
+      const toSelect = document.getElementById('nav-to');
+      const rpmInput = document.getElementById('nav-rpm');
+      const startBtn = document.getElementById('nav-start-btn');
+      const cancelBtn = document.getElementById('nav-cancel-btn');
+      const statusEl = document.getElementById('nav-status');
+      const pathPreview = document.getElementById('nav-path-preview');
+
+      // Preview path on selection change
+      async function updatePathPreview() {
+        const from = fromSelect.value;
+        const to = toSelect.value;
+        try {
+          const r = await fetch(`${NAV_API}/api/navigate/path?from=${from}&to=${to}`);
+          const data = await r.json();
+          if (data.path) {
+            pathPreview.innerHTML = 'Path: ' + data.path.map(m => `M${m}`).join(' → ') + ` (${data.steps} steps)`;
+          }
+        } catch (e) {
+          pathPreview.textContent = 'Path: planner offline';
+        }
+      }
+
+      fromSelect.onchange = updatePathPreview;
+      toSelect.onchange = updatePathPreview;
+      toSelect.value = '9';
+      updatePathPreview();
+
+      // Start navigation
+      startBtn.onclick = async () => {
+        const payload = {
+          from: parseInt(fromSelect.value),
+          to: parseInt(toSelect.value),
+          rpm: parseInt(rpmInput.value) || 500
+        };
+        try {
+          const r = await fetch(`${NAV_API}/api/navigate`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+          });
+          const data = await r.json();
+          if (data.error) {
+            statusEl.textContent = data.error;
+            return;
+          }
+          startBtn.disabled = true;
+          cancelBtn.disabled = false;
+          statusEl.className = 'nav-status active';
+          startNavPolling();
+        } catch (e) {
+          statusEl.textContent = 'Failed to connect to planner';
+        }
+      };
+
+      // Cancel navigation
+      cancelBtn.onclick = async () => {
+        try {
+          await fetch(`${NAV_API}/api/navigate/cancel`, {method: 'POST'});
+        } catch (e) {}
+      };
+    }
+
+    function startNavPolling() {
+      if (navPolling) clearInterval(navPolling);
+      navPolling = setInterval(pollNavStatus, 500);
+    }
+
+    async function pollNavStatus() {
+      const statusEl = document.getElementById('nav-status');
+      const startBtn = document.getElementById('nav-start-btn');
+      const cancelBtn = document.getElementById('nav-cancel-btn');
+      const pathPreview = document.getElementById('nav-path-preview');
+
+      try {
+        const r = await fetch(`${NAV_API}/api/navigate/status`);
+        const s = await r.json();
+
+        statusEl.textContent = s.message || s.status;
+
+        if (s.status === 'running' && s.path) {
+          pathPreview.innerHTML = 'Path: ' + s.path.map((m, i) =>
+            i === s.current_step ? `<span class="active-motor">M${m}</span>` : `M${m}`
+          ).join(' → ');
+        }
+
+        if (s.status !== 'running') {
+          statusEl.className = 'nav-status';
+          startBtn.disabled = false;
+          cancelBtn.disabled = true;
+          clearInterval(navPolling);
+          navPolling = null;
+        }
+      } catch (e) {
+        statusEl.textContent = 'Planner offline';
+        statusEl.className = 'nav-status';
+        startBtn.disabled = false;
+        cancelBtn.disabled = true;
+        clearInterval(navPolling);
+        navPolling = null;
+      }
+    }
+
     // ==================== INITIALIZATION ====================
     function init() {
       // Setup motors
@@ -1253,12 +1499,17 @@
 
       // Setup tracking
       setupCameraFeeds();
+      setupNavigation();
 
       // Start status checks
       checkMotorStatus();
       checkTrackingStatus();
       setInterval(checkMotorStatus, 5000);
       setInterval(checkTrackingStatus, 2000);
+
+      // Single telemetry poll for all motors (replaces 9 individual polls)
+      pollAllTelemetry();
+      setInterval(pollAllTelemetry, 300);
 
       // Start microbot data updates
       setInterval(updateMicrobotData, 500);
